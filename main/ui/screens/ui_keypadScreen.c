@@ -2,13 +2,23 @@
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
+#include "ui_cfg.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Teclado numérico de umbral (mockup 5c). */
 
 lv_obj_t *ui_keypadScreen = NULL;
 static lv_obj_t *s_value_lbl = NULL;
-static char s_buf[8] = "2000";
+static char s_buf[8] = "0";
+
+/* Aceptar: guarda el valor tecleado en la edición pendiente y abre el diálogo de confirmación. */
+static void accept_cb(lv_event_t *e)
+{
+    ui_edit_set_new((float)atof(s_buf[0] ? s_buf : "0"));
+    ui_open_confirm_cb(e);
+}
 
 static void refresh_value(void)
 {
@@ -45,7 +55,7 @@ static int32_t s_krow[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID
 
 void ui_keypadScreen_screen_init(void)
 {
-    strcpy(s_buf, "2000");
+    snprintf(s_buf, sizeof(s_buf), "%.0f", ui_edit_new());  /* valor actual del umbral */
     ui_keypadScreen = ui_screen_base();
     lv_obj_set_flex_flow(ui_keypadScreen, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(ui_keypadScreen, 12, 0);
@@ -64,7 +74,7 @@ void ui_keypadScreen_screen_init(void)
     lv_obj_set_flex_align(tt, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(tt, 8, 0);
     ui_icon(tt, UI_SYM_GAUGE, UI_ICON_MD, UI_C_ALARM);
-    ui_label(tt, "Presión · Umbral máximo", UI_FONT_MD, UI_C_TEXT);
+    ui_label(tt, ui_edit_label(), UI_FONT_MD, UI_C_TEXT);
 
     lv_obj_t *disp = ui_box(left);
     lv_obj_set_size(disp, LV_PCT(100), LV_SIZE_CONTENT);
@@ -79,7 +89,7 @@ void ui_keypadScreen_screen_init(void)
     lv_obj_set_flex_align(disp, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
     lv_obj_set_style_pad_column(disp, 8, 0);
     s_value_lbl = ui_label(disp, s_buf, UI_FONT_HUGE, UI_C_TEXT_STRONG);
-    ui_label(disp, "psi", UI_FONT_LG, UI_C_TEXT_2);
+    ui_label(disp, ui_edit_unit(), UI_FONT_LG, UI_C_TEXT_2);
 
     lv_obj_t *info = ui_box(left);
     lv_obj_set_size(info, LV_PCT(100), LV_SIZE_CONTENT);
@@ -106,7 +116,7 @@ void ui_keypadScreen_screen_init(void)
     ui_style_button(ok, UI_C_OK);
     lv_obj_set_style_pad_ver(ok, 9, 0);
     lv_obj_add_flag(ok, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(ok, ui_open_confirm_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ok, accept_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_center(ui_label(ok, "Aceptar", UI_FONT_SM, 0x06251f));
 
     /* --- teclado numérico --- */

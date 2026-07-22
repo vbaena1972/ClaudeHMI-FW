@@ -28,6 +28,10 @@ extern "C" {
 #include "screens/ui_confirmScreen.h"
 #include "screens/ui_pinScreen.h"
 #include "screens/ui_bleAppScreen.h"
+#include "screens/ui_netWifiScreen.h"
+#include "screens/ui_netEthScreen.h"
+#include "screens/ui_netCloudScreen.h"
+#include "screens/ui_netBleScreen.h"
 
 /* --- Ciclo de vida (llamado por main.c) --- */
 void ui_init(void);
@@ -45,6 +49,10 @@ void ui_open_bleapp_cb(lv_event_t *e);
 void ui_open_pin_cb(lv_event_t *e);
 void ui_open_keypad_cb(lv_event_t *e);
 void ui_open_confirm_cb(lv_event_t *e);
+void ui_open_net_wifi_cb(lv_event_t *e);
+void ui_open_net_eth_cb(lv_event_t *e);
+void ui_open_net_cloud_cb(lv_event_t *e);
+void ui_open_net_ble_cb(lv_event_t *e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

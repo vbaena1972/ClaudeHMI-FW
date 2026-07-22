@@ -2,6 +2,8 @@
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
+#include "ui_cfg.h"
+#include <stdio.h>
 
 /* Diálogo de confirmación de cambio crítico (mockup 5d). */
 
@@ -63,13 +65,16 @@ void ui_confirmScreen_screen_init(void)
     lv_obj_set_flex_grow(lc, 1);
     lv_obj_set_height(lc, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(lc, LV_FLEX_FLOW_COLUMN);
-    lv_obj_t *cap = ui_label(lc, "PRESIÓN · MÁXIMO", UI_FONT_XS, UI_C_TEXT_MUTED);
+    lv_obj_t *cap = ui_label(lc, ui_edit_label(), UI_FONT_XS, UI_C_TEXT_MUTED);
     lv_obj_set_style_text_letter_space(cap, 1, 0);
     ui_label(lc, "antes", UI_FONT_SM, UI_C_TEXT_2);
-    ui_label(row, "2000", UI_FONT_LG, UI_C_TEXT_2);
+    char ob[16], nb[16];
+    snprintf(ob, sizeof(ob), "%.0f", ui_edit_old());
+    snprintf(nb, sizeof(nb), "%.0f", ui_edit_new());
+    ui_label(row, ob, UI_FONT_LG, UI_C_TEXT_2);
     ui_icon(row, UI_SYM_ARROW_RIGHT, UI_ICON_SM, UI_C_TEXT_MUTED);
-    ui_label(row, "2100", UI_FONT_LG, UI_C_OK);
-    ui_label(row, "psi", UI_FONT_XS, UI_C_TEXT_2);
+    ui_label(row, nb, UI_FONT_LG, UI_C_OK);
+    ui_label(row, ui_edit_unit(), UI_FONT_XS, UI_C_TEXT_2);
 
     /* botones */
     lv_obj_t *btns = ui_box(card);

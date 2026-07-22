@@ -56,6 +56,9 @@ lv_obj_t *ui_box(lv_obj_t *parent)
     lv_obj_t *o = lv_obj_create(parent);
     lv_obj_set_style_bg_opa(o, LV_OPA_TRANSP, LV_PART_MAIN | LV_STATE_DEFAULT);
     ui_kill_scroll(o);
+    /* En LVGL 9 lv_obj_create es CLICKABLE por defecto: un contenedor de layout
+       no debe robar el toque de una tarjeta/tile clickeable que lo envuelve. */
+    lv_obj_clear_flag(o, LV_OBJ_FLAG_CLICKABLE);
     return o;
 }
 
@@ -80,6 +83,7 @@ lv_obj_t *ui_label(lv_obj_t *parent, const char *txt, const lv_font_t *font, uin
     if (txt) lv_label_set_text(l, txt);
     if (font) lv_obj_set_style_text_font(l, font, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(l, ui_col(color_hex), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(l, LV_OBJ_FLAG_CLICKABLE);  /* los labels no roban el toque */
     return l;
 }
 
@@ -111,6 +115,7 @@ lv_obj_t *ui_icon_badge(lv_obj_t *parent, const char *sym, const lv_font_t *font
 {
     lv_obj_t *b = lv_obj_create(parent);
     ui_kill_scroll(b);
+    lv_obj_clear_flag(b, LV_OBJ_FLAG_CLICKABLE);  /* decorativo por defecto; back/gear añaden el flag */
     lv_obj_set_size(b, size, size);
     lv_obj_set_style_bg_color(b, ui_col(bg_hex), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(b, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);

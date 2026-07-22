@@ -56,8 +56,10 @@ void ui_connectivityScreen_screen_init(void)
     lv_obj_set_grid_dsc_array(grid, s_col, s_row);
     lv_obj_set_layout(grid, LV_LAYOUT_GRID);
 
-    /* Wi-Fi */
+    /* Wi-Fi (tap -> formulario) */
     lv_obj_t *wifi = conn_card(grid, UI_SYM_WIFI, UI_C_OK, UI_C_OK_BORDER, "Wi-Fi", "Conectado", UI_C_OK, 0, 0);
+    lv_obj_add_flag(wifi, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(wifi, ui_open_net_wifi_cb, LV_EVENT_CLICKED, NULL);
     ui_label(wifi, "Hospital-BIOMED-5G", UI_FONT_SM, 0xcfd3d9);
     lv_obj_t *sig = ui_box(wifi);
     lv_obj_set_size(sig, LV_PCT(100), LV_SIZE_CONTENT);
@@ -73,24 +75,28 @@ void ui_connectivityScreen_screen_init(void)
     ui_label(sig, "-52 dBm", UI_FONT_XS, UI_C_TEXT_MUTED);
     ui_label(wifi, "IP 10.4.12.87 · DHCP", UI_FONT_XS, UI_C_TEXT_MUTED);
 
-    /* Nube MQTT */
+    /* Nube MQTT (tap -> formulario) */
     lv_obj_t *cloud = conn_card(grid, UI_SYM_CLOUD_CHECK, UI_C_TEAL, UI_C_TEAL, "Nube · MQTT", "Sincronizado", UI_C_TEAL, 1, 0);
+    lv_obj_add_flag(cloud, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(cloud, ui_open_net_cloud_cb, LV_EVENT_CLICKED, NULL);
     ui_label(cloud, "broker.axira.io:8883 · TLS", UI_FONT_SM, 0xcfd3d9);
     lv_obj_t *sp1 = ui_box(cloud); lv_obj_set_flex_grow(sp1, 1); lv_obj_set_width(sp1, LV_PCT(100));
     ui_label(cloud, "Última sync hace 8 s · QoS 1", UI_FONT_XS, UI_C_TEXT_MUTED);
     ui_label(cloud, "Buffer local 0 registros", UI_FONT_XS, UI_C_TEXT_MUTED);
 
-    /* Bluetooth (tap -> config por app) */
+    /* Bluetooth (tap -> formulario BLE) */
     lv_obj_t *ble = conn_card(grid, UI_SYM_BLUETOOTH, UI_C_BLUE, UI_C_BLUE, "Bluetooth LE", "Anunciando", UI_C_BLUE, 0, 1);
     lv_obj_add_flag(ble, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(ble, ui_open_bleapp_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ble, ui_open_net_ble_cb, LV_EVENT_CLICKED, NULL);
     ui_label(ble, "Visible para app de servicio", UI_FONT_SM, 0xcfd3d9);
     lv_obj_t *sp2 = ui_box(ble); lv_obj_set_flex_grow(sp2, 1); lv_obj_set_width(sp2, LV_PCT(100));
     ui_label(ble, "Sin dispositivo emparejado", UI_FONT_XS, UI_C_TEXT_MUTED);
     ui_label(ble, "MAC C8:2B:…:9F", UI_FONT_XS, UI_C_TEXT_MUTED);
 
-    /* Ethernet */
+    /* Ethernet (tap -> formulario) */
     lv_obj_t *eth = conn_card(grid, UI_SYM_NETWORK, UI_C_TEXT_MUTED, UI_C_BORDER, "Ethernet", "Sin cable", UI_C_TEXT_MUTED, 1, 1);
+    lv_obj_add_flag(eth, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(eth, ui_open_net_eth_cb, LV_EVENT_CLICKED, NULL);
     ui_label(eth, "Respaldo cableado (failover)", UI_FONT_SM, UI_C_TEXT_3);
     lv_obj_t *sp3 = ui_box(eth); lv_obj_set_flex_grow(sp3, 1); lv_obj_set_width(sp3, LV_PCT(100));
     ui_label(eth, "RJ45 · 100 Mbps", UI_FONT_XS, UI_C_TEXT_MUTED);

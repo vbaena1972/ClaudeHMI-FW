@@ -61,6 +61,11 @@ static lv_obj_t *fresh_pin(void)
     ui_pinScreen_screen_init();
     return ui_pinScreen;
 }
+/* Formularios de red: se recrean al abrir para cargar la config actual. */
+static lv_obj_t *fresh_net_wifi(void)  { if (ui_netWifiScreen)  ui_netWifiScreen_screen_destroy();  ui_netWifiScreen_screen_init();  return ui_netWifiScreen; }
+static lv_obj_t *fresh_net_eth(void)   { if (ui_netEthScreen)   ui_netEthScreen_screen_destroy();   ui_netEthScreen_screen_init();   return ui_netEthScreen; }
+static lv_obj_t *fresh_net_cloud(void) { if (ui_netCloudScreen) ui_netCloudScreen_screen_destroy(); ui_netCloudScreen_screen_init(); return ui_netCloudScreen; }
+static lv_obj_t *fresh_net_ble(void)   { if (ui_netBleScreen)   ui_netBleScreen_screen_destroy();   ui_netBleScreen_screen_init();   return ui_netBleScreen; }
 
 /* Fin del splash -> transición a la pantalla principal.
  * auto_del=true deja que LVGL libere el splash al terminar la animación
@@ -117,3 +122,7 @@ void ui_open_bleapp_cb(lv_event_t *e)         { (void)e; ui_nav_load(get_bleapp(
 void ui_open_keypad_cb(lv_event_t *e)         { (void)e; ui_nav_load(fresh_keypad()); }
 void ui_open_confirm_cb(lv_event_t *e)        { (void)e; ui_nav_load(fresh_confirm()); }
 void ui_open_pin_cb(lv_event_t *e)            { (void)e; ui_nav_load(fresh_pin()); }
+void ui_open_net_wifi_cb(lv_event_t *e)       { (void)e; ui_nav_load(fresh_net_wifi()); }
+void ui_open_net_eth_cb(lv_event_t *e)        { (void)e; ui_nav_load(fresh_net_eth()); }
+void ui_open_net_cloud_cb(lv_event_t *e)      { (void)e; ui_nav_load(fresh_net_cloud()); }
+void ui_open_net_ble_cb(lv_event_t *e)        { (void)e; ui_nav_load(fresh_net_ble()); }

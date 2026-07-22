@@ -2,28 +2,52 @@
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
+#include "ui_cfg.h"
+#include <string.h>
 
 /* Diálogo de PIN de servicio (mockup 5a). */
 
 lv_obj_t *ui_pinScreen = NULL;
 static lv_obj_t *s_dots[4];
+static char s_pin[5];
 static int s_count = 0;
 
 static void refresh_dots(void)
 {
     for (int i = 0; i < 4; i++) {
         bool on = (i < s_count);
+        lv_obj_set_style_bg_color(s_dots[i], ui_col(UI_C_OK), 0);
         lv_obj_set_style_bg_opa(s_dots[i], on ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
         lv_obj_set_style_border_opa(s_dots[i], on ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
+    }
+}
+
+static void pin_wrong_flash(void)
+{
+    /* pinta los puntos en rojo brevemente y limpia */
+    for (int i = 0; i < 4; i++) {
+        lv_obj_set_style_bg_color(s_dots[i], ui_col(UI_C_ALARM), 0);
+        lv_obj_set_style_bg_opa(s_dots[i], LV_OPA_COVER, 0);
     }
 }
 
 static void pin_key_cb(lv_event_t *e)
 {
     char k = (char)(intptr_t)lv_event_get_user_data(e);
-    if (k == '<') { if (s_count > 0) s_count--; }
-    else if (k == '=') { ui_nav_back(); return; }   /* check -> aceptar (demo: vuelve) */
-    else if (s_count < 4) s_count++;
+    if (k == '<') {
+        if (s_count > 0) s_pin[--s_count] = '\0';
+    } else if (k == '=') {
+        if (s_count == 4 && ui_cfg_check_pin(s_pin)) {
+            ui_edit_apply();                       /* aplica el umbral en NVS */
+            ui_nav_pop_to(ui_sensorEditScreen);    /* vuelve a Sensores       */
+            return;
+        }
+        pin_wrong_flash();                          /* PIN incorrecto o incompleto */
+        s_count = 0; s_pin[0] = '\0';
+        return;
+    } else if (s_count < 4 && k >= '0' && k <= '9') {
+        s_pin[s_count++] = k; s_pin[s_count] = '\0';
+    }
     refresh_dots();
 }
 
@@ -50,7 +74,7 @@ static int32_t s_row[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_
 
 void ui_pinScreen_screen_init(void)
 {
-    s_count = 3;   /* estado del mockup: 3 de 4 */
+    s_count = 0; s_pin[0] = '\0';
     ui_pinScreen = ui_screen_base();
     lv_obj_set_flex_flow(ui_pinScreen, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(ui_pinScreen, 14, 0);

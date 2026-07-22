@@ -53,6 +53,20 @@ void ui_nav_back(void)
     lv_screen_load_anim(s_stack[s_top], LV_SCR_LOAD_ANIM_MOVE_RIGHT, 180, 0, false);
 }
 
+void ui_nav_pop_to(lv_obj_t *scr)
+{
+    if (!scr) { ui_nav_back(); return; }
+    /* Busca scr en la pila (desde arriba) y hace pop hasta dejarla en el tope. */
+    for (int i = s_top; i >= 0; i--) {
+        if (s_stack[i] == scr) {
+            s_top = i;
+            lv_screen_load_anim(scr, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 200, 0, false);
+            return;
+        }
+    }
+    ui_nav_back();  /* no está en la pila: retroceso simple */
+}
+
 void ui_nav_back_event_cb(lv_event_t *e)
 {
     (void)e;

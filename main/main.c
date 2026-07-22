@@ -711,6 +711,7 @@ static void wifi_init_task(void *arg)
 static void ui_refresh_task(void *arg)
 {
     const AppConfig *cfg = (const AppConfig *)arg;
+    (void)cfg;   /* ya no se usa: ui_main_update lee el caché vivo */
 
     ESP_LOGI("ui_refresh", "ui_refresh_task START");
 
@@ -738,8 +739,10 @@ static void ui_refresh_task(void *arg)
         // Refrescar la HMI: todo el manejo de widgets vive en la capa UI (ui_main_update)
         if (bsp_display_lock(pdMS_TO_TICKS(100)))
         {
+            /* NULL -> ui_main_update usa el AppConfig del caché VIVO (appcfg_cache_peek),
+               así los cambios de unidad/umbral hechos desde la UI se reflejan sin reiniciar. */
             ui_main_update(&last, have_last, &min_s, &max_s, have_mm,
-                           cfg, current_state, is_muted);
+                           NULL, current_state, is_muted);
 
             // Reloj de la cabecera (se actualiza al cambiar de minuto)
             time_t now = time(NULL);

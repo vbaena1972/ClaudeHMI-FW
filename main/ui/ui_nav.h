@@ -15,6 +15,7 @@ void ui_nav_show_root(void);               /* carga la raíz (tras el splash) */
 void ui_nav_load(lv_obj_t *scr);           /* carga scr y apila la actual  */
 void ui_nav_replace(lv_obj_t *scr);        /* carga scr SIN apilar (splash->main) */
 void ui_nav_back(void);                    /* vuelve a la anterior          */
+void ui_nav_pop_to(lv_obj_t *scr);         /* hace pop hasta 'scr' (si está en la pila) */
 lv_obj_t *ui_nav_current(void);
 
 /* Callback listo para usar en LV_EVENT_CLICKED de botones "atrás". */
