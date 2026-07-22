@@ -1,4 +1,5 @@
 #include "ui_mainScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
@@ -12,8 +13,11 @@
  *   NORMAL / ADVERTENCIA / ALARMA / ALARMA-SILENCIADA
  * ============================================================ */
 
-/* --- Constantes de escala (ajustables/calibrables) --- */
-#define FLOW_AXIS_FULLSCALE_LPM   100.0f  /* fondo de escala de la barra de flujo (L/min) */
+/* --- Constantes de escala ---
+ * El fondo de escala del eje de flujo ahora viene de AppConfig
+ * (sensors.flow_fullscale_lpm, calibrable sin recompilar); este define
+ * queda solo como respaldo si la config trae un valor inválido. */
+#define FLOW_AXIS_FULLSCALE_LPM   100.0f  /* respaldo (L/min) */
 #define FLOW_HIGH_ZONE_FRAC       0.80f   /* inicio de zona "alta" (ámbar) en la barra */
 
 /* --- Globals del contrato (ui_bind / main.c) --- */
@@ -44,10 +48,18 @@ typedef struct {
 
 static metric_card_t s_press, s_flow;
 
+/* --- Consumo del día: integral del flujo (∫ L/min · dt → m³) ---
+ * Se integra entre timestamps de muestra (ts_ms): si ui_refresh repite la misma
+ * muestra, dt=0 y no hay doble conteo. Vive en RAM (se pierde al reiniciar). */
+static float   s_consumo_m3 = 0.f;
+static int64_t s_consumo_prev_ts = -1;
+static char    s_clock_prev[8] = "";
+
 /* --- Cabecera / banner / consumo / gas --- */
 static lv_obj_t *s_brand_lbl, *s_sub_lbl, *s_clock_lbl;
 static lv_obj_t *s_banner, *s_banner_icon, *s_banner_txt, *s_banner_sub, *s_banner_right, *s_banner_right_ic, *s_banner_right_tx;
 static lv_obj_t *s_consumo_val, *s_consumo_badge, *s_consumo_badge_tx;
+static lv_obj_t *s_consumo_cap = NULL;   /* caption "CONSUMO" (retraducible) */
 static lv_obj_t *s_gas_banner, *s_gas_lbl;
 
 /* ---------- helpers ---------- */
@@ -163,7 +175,7 @@ static void build_metric_card(lv_obj_t *parent, metric_card_t *m,
     lv_obj_set_style_pad_ver(m->pill, 3, 0);
     lv_obj_set_flex_flow(m->pill, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(m->pill, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    m->pill_state = ui_label(m->pill, "NORMAL", UI_FONT_SM, UI_C_OK);
+    m->pill_state = ui_label(m->pill, _t("NORMAL"), UI_FONT_SM, UI_C_OK);
     lv_obj_set_style_text_letter_space(m->pill_state, 1, 0);
     m->pill_mm = ui_label(m->pill, "24H -- / --", UI_FONT_XS, UI_C_TEXT_MUTED);
 }
@@ -225,16 +237,20 @@ static void update_metric_card(metric_card_t *m, float value_disp, float frac,
     lv_label_set_text(m->pill_mm, buf);
 }
 
-/* ---------- conversiones de unidades (replican main.c) ---------- */
+/* ---------- conversiones de unidades ----------
+ * bar era kPa/10 en el FW original: bug (1 bar = 100 kPa), corregido a /100.
+ * Mantiene la firma (valor, unit) para usar el cfg que recibe ui_main_update. */
 static float pressure_to_disp(float kpa, const char *unit)
 {
     if (unit && strcmp(unit, "psi") == 0) return kpa * 0.145038f;
-    if (unit && strcmp(unit, "bar") == 0) return kpa / 10.0f; /* nota: mismo factor que el FW original */
+    if (unit && strcmp(unit, "bar") == 0) return kpa / 100.0f;
+    if (unit && strcmp(unit, "mpa") == 0) return kpa / 1000.0f;
     return kpa; /* kpa */
 }
 static float flow_to_disp(float lpm, const char *unit)
 {
     if (unit && strcmp(unit, "sccm") == 0) return lpm * 1000.0f;
+    if (unit && strcmp(unit, "m3h") == 0)  return lpm * 0.06f;  /* 1 L/min = 0.06 m³/h */
     return lpm; /* lpm/slpm/nlpm */
 }
 
@@ -269,7 +285,7 @@ void ui_mainScreen_screen_init(void)
     lv_obj_set_size(bcol, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(bcol, LV_FLEX_FLOW_COLUMN);
     s_brand_lbl = ui_label(bcol, "Axira Equipos", UI_FONT_MD, UI_C_TEXT);
-    s_sub_lbl   = ui_label(bcol, "Medidor de gases", UI_FONT_XS, UI_C_TEXT_3);
+    s_sub_lbl   = ui_label(bcol, _t("Medidor de gases"), UI_FONT_XS, UI_C_TEXT_3);
 
     /* fila de estado (iconos + reloj + settings) */
     ui_statusMainComm = ui_box(hdr);
@@ -300,9 +316,9 @@ void ui_mainScreen_screen_init(void)
     lv_obj_add_flag(s_banner, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(s_banner, banner_mute_cb, LV_EVENT_CLICKED, NULL);
     s_banner_icon = ui_icon(s_banner, UI_SYM_CIRCLE_CHECK, UI_ICON_SM, UI_C_OK);
-    s_banner_txt  = ui_label(s_banner, "SISTEMA NORMAL", UI_FONT_SM, UI_C_OK_SOFT);
+    s_banner_txt  = ui_label(s_banner, _t("SISTEMA NORMAL"), UI_FONT_SM, UI_C_OK_SOFT);
     lv_obj_set_style_text_letter_space(s_banner_txt, 1, 0);
-    s_banner_sub  = ui_label(s_banner, "· sin alarmas", UI_FONT_XS, UI_C_OK_DIM);
+    s_banner_sub  = ui_label(s_banner, _t("· sin alarmas"), UI_FONT_XS, UI_C_OK_DIM);
     /* pill derecho (para estado silenciado) */
     s_banner_right = ui_box(s_banner);
     lv_obj_set_size(s_banner_right, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -321,8 +337,8 @@ void ui_mainScreen_screen_init(void)
     lv_obj_set_flex_grow(cards, 1);
     lv_obj_set_flex_flow(cards, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(cards, 10, 0);
-    build_metric_card(cards, &s_press, "PRESIÓN", UI_SYM_GAUGE, "psi");
-    build_metric_card(cards, &s_flow,  "FLUJO",   UI_SYM_WIND,  "SCCM");
+    build_metric_card(cards, &s_press, _t("PRESIÓN"), UI_SYM_GAUGE, "psi");
+    build_metric_card(cards, &s_flow,  _t("FLUJO"),   UI_SYM_WIND,  "SCCM");
 
     /* ===== Fila de consumo ===== */
     lv_obj_t *cons = ui_card(ui_mainScreen);
@@ -334,8 +350,8 @@ void ui_mainScreen_screen_init(void)
     lv_obj_set_flex_align(cons, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(cons, 7, 0);
     ui_icon(cons, UI_SYM_CHART_BAR, UI_ICON_SM, UI_C_TEXT_3);
-    lv_obj_t *cl = ui_label(cons, "CONSUMO", UI_FONT_XS, UI_C_TEXT_3);
-    lv_obj_set_style_text_letter_space(cl, 1, 0);
+    s_consumo_cap = ui_label(cons, _t("CONSUMO"), UI_FONT_XS, UI_C_TEXT_3);
+    lv_obj_set_style_text_letter_space(s_consumo_cap, 1, 0);
     s_consumo_val = ui_label(cons, "-- m³ hoy", UI_FONT_XL, UI_C_TEXT_STRONG);
     lv_obj_set_style_margin_left(s_consumo_val, 4, 0);
     s_consumo_badge = ui_pill(cons, "--", UI_FONT_XS, UI_C_OK_DIM, UI_C_OK_BG, UI_C_OK_BORDER);
@@ -352,7 +368,7 @@ void ui_mainScreen_screen_init(void)
     lv_obj_set_style_pad_ver(s_gas_banner, 4, 0);
     lv_obj_set_flex_flow(s_gas_banner, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(s_gas_banner, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    s_gas_lbl = ui_label(s_gas_banner, "OXÍGENO", UI_FONT_TITLE, 0xffffff);
+    s_gas_lbl = ui_label(s_gas_banner, _t("OXÍGENO"), UI_FONT_TITLE, 0xffffff);
     lv_obj_set_style_text_letter_space(s_gas_lbl, 3, 0);
 
     /* estado inicial */
@@ -367,16 +383,25 @@ void ui_mainScreen_screen_destroy(void)
 /* ---------- API pública de binding ---------- */
 void ui_main_set_clock(const char *hhmm)
 {
-    if (s_clock_lbl && hhmm) lv_label_set_text(s_clock_lbl, hhmm);
+    if (!hhmm) return;
+    /* cambio de día: la hora "retrocede" (23:59 -> 00:00) => resetear consumo */
+    if (s_clock_prev[0] && strcmp(hhmm, s_clock_prev) < 0)
+        s_consumo_m3 = 0.f;
+    strncpy(s_clock_prev, hhmm, sizeof(s_clock_prev) - 1);
+    s_clock_prev[sizeof(s_clock_prev) - 1] = '\0';
+    if (s_clock_lbl) lv_label_set_text(s_clock_lbl, hhmm);
 }
+
+float ui_main_get_consumo(void) { return s_consumo_m3; }
+void  ui_main_set_consumo(float m3) { if (m3 >= 0.f) s_consumo_m3 = m3; }
 
 /* Mapea gas_type -> etiqueta + color de banner */
 static void gas_label_color(const char *gas, const char **label, uint32_t *color)
 {
-    if (gas && strcmp(gas, "air_med") == 0) { *label = "AIRE MEDICINAL"; *color = UI_C_GAS_AIR; return; }
-    if (gas && strcmp(gas, "n2o") == 0)     { *label = "ÓXIDO NITROSO";  *color = UI_C_GAS_N2O; return; }
-    if (gas && strcmp(gas, "vac") == 0)     { *label = "VACÍO";          *color = UI_C_GAS_VAC; return; }
-    *label = "OXÍGENO"; *color = UI_C_GAS_O2; /* o2 por defecto */
+    if (gas && strcmp(gas, "air_med") == 0) { *label = _t("AIRE MEDICINAL"); *color = UI_C_GAS_AIR; return; }
+    if (gas && strcmp(gas, "n2o") == 0)     { *label = _t("ÓXIDO NITROSO");  *color = UI_C_GAS_N2O; return; }
+    if (gas && strcmp(gas, "vac") == 0)     { *label = _t("VACÍO");          *color = UI_C_GAS_VAC; return; }
+    *label = _t("OXÍGENO"); *color = UI_C_GAS_O2; /* o2 por defecto */
 }
 
 void ui_main_apply_config(const AppConfig *cfg)
@@ -394,6 +419,12 @@ void ui_main_apply_config(const AppConfig *cfg)
 
     if (cfg->sensors.pressure_unit[0]) lv_label_set_text(s_press.unit, cfg->sensors.pressure_unit);
     if (cfg->sensors.flow_unit[0])     lv_label_set_text(s_flow.unit, cfg->sensors.flow_unit);
+
+    /* Textos estáticos retraducibles (main persiste; el resto de pantallas se
+     * recrean al abrirse y no lo necesitan). save_and_refresh() pasa por aquí. */
+    if (s_press.title)  lv_label_set_text(s_press.title, _t("PRESIÓN"));
+    if (s_flow.title)   lv_label_set_text(s_flow.title, _t("FLUJO"));
+    if (s_consumo_cap)  lv_label_set_text(s_consumo_cap, _t("CONSUMO"));
 }
 
 /* Banner por estado */
@@ -403,30 +434,30 @@ static void set_banner(alarm_clinical_state_t st, bool muted)
         set_bg(s_banner, UI_C_OK_BG); set_border(s_banner, UI_C_OK_BORDER);
         lv_obj_set_style_bg_opa(s_banner, LV_OPA_COVER, 0);
         lv_label_set_text(s_banner_icon, UI_SYM_CIRCLE_CHECK); set_txt_color(s_banner_icon, UI_C_OK);
-        lv_label_set_text(s_banner_txt, "SISTEMA NORMAL"); set_txt_color(s_banner_txt, UI_C_OK_SOFT);
-        lv_label_set_text(s_banner_sub, "· sin alarmas"); set_txt_color(s_banner_sub, UI_C_OK_DIM);
+        lv_label_set_text(s_banner_txt, _t("SISTEMA NORMAL")); set_txt_color(s_banner_txt, UI_C_OK_SOFT);
+        lv_label_set_text(s_banner_sub, _t("· sin alarmas")); set_txt_color(s_banner_sub, UI_C_OK_DIM);
         lv_obj_add_flag(s_banner_right, LV_OBJ_FLAG_HIDDEN);
     } else if (st == ALARM_STATE_WARNING) {
         set_bg(s_banner, UI_C_WARN_BG); set_border(s_banner, UI_C_WARN_BORDER);
         lv_obj_set_style_bg_opa(s_banner, LV_OPA_COVER, 0);
         lv_label_set_text(s_banner_icon, UI_SYM_ALERT_TRIANGLE); set_txt_color(s_banner_icon, UI_C_WARN);
-        lv_label_set_text(s_banner_txt, "ADVERTENCIA"); set_txt_color(s_banner_txt, UI_C_WARN_SOFT);
-        lv_label_set_text(s_banner_sub, "· vigilar"); set_txt_color(s_banner_sub, UI_C_WARN_DIM);
+        lv_label_set_text(s_banner_txt, _t("ADVERTENCIA")); set_txt_color(s_banner_txt, UI_C_WARN_SOFT);
+        lv_label_set_text(s_banner_sub, _t("· vigilar")); set_txt_color(s_banner_sub, UI_C_WARN_DIM);
         lv_obj_add_flag(s_banner_right, LV_OBJ_FLAG_HIDDEN);
     } else { /* ALERT */
         set_bg(s_banner, UI_C_ALARM_BG); set_border(s_banner, UI_C_ALARM_BORDER);
         lv_obj_set_style_bg_opa(s_banner, LV_OPA_COVER, 0);
         lv_label_set_text(s_banner_icon, UI_SYM_ALERT_TRIANGLE_FILLED); set_txt_color(s_banner_icon, UI_C_ALARM_SOFT);
-        lv_label_set_text(s_banner_txt, "ALARMA"); set_txt_color(s_banner_txt, 0xffd3d3);
-        lv_label_set_text(s_banner_sub, "· revisar línea"); set_txt_color(s_banner_sub, UI_C_ALARM_SOFT);
+        lv_label_set_text(s_banner_txt, _t("ALARMA")); set_txt_color(s_banner_txt, 0xffd3d3);
+        lv_label_set_text(s_banner_sub, _t("· revisar línea")); set_txt_color(s_banner_sub, UI_C_ALARM_SOFT);
         if (muted) {
             lv_obj_clear_flag(s_banner_right, LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text(s_banner_right_ic, UI_SYM_BELL_OFF);
-            lv_label_set_text(s_banner_right_tx, "silenciada");
+            lv_label_set_text(s_banner_right_tx, _t("silenciada"));
         } else {
             lv_obj_clear_flag(s_banner_right, LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text(s_banner_right_ic, UI_SYM_BELL_RINGING);
-            lv_label_set_text(s_banner_right_tx, "buzzer activo");
+            lv_label_set_text(s_banner_right_tx, _t("buzzer activo"));
         }
     }
 }
@@ -451,9 +482,9 @@ void ui_main_update(const sensor_sample_t *last, bool have_last,
         float safe_lo = clampf(p_min / axis_kpa, 0.f, 1.f);
         float safe_hi = clampf(p_max / axis_kpa, 0.f, 1.f);
 
-        card_state_t pst = CARD_OK; const char *ptx = "NORMAL";
-        if (last->pressure_kpa < p_min) { pst = CARD_ALARM; ptx = "BAJA"; }
-        else if (last->pressure_kpa > p_max) { pst = CARD_ALARM; ptx = "ALTA"; }
+        card_state_t pst = CARD_OK; const char *ptx = _t("NORMAL");
+        if (last->pressure_kpa < p_min) { pst = CARD_ALARM; ptx = _t("BAJA"); }
+        else if (last->pressure_kpa > p_max) { pst = CARD_ALARM; ptx = _t("ALTA"); }
 
         float pmn = have_mm ? pressure_to_disp(mn->pressure_kpa, cfg->sensors.pressure_unit) : p_disp;
         float pmx = have_mm ? pressure_to_disp(mx->pressure_kpa, cfg->sensors.pressure_unit) : p_disp;
@@ -462,20 +493,38 @@ void ui_main_update(const sensor_sample_t *last, bool have_last,
         char ab[24];
         snprintf(ab, sizeof(ab), "%.0f", pressure_to_disp(axis_kpa, cfg->sensors.pressure_unit));
         lv_label_set_text(s_press.ax_right, ab);
-        lv_label_set_text(s_press.ax_mid, "seguro");
+        lv_label_set_text(s_press.ax_mid, _t("seguro"));
 
         /* --- Flujo --- */
         float f_disp = flow_to_disp(last->flow_lpm, cfg->sensors.flow_unit);
-        float f_axis = FLOW_AXIS_FULLSCALE_LPM;
+        float f_axis = (cfg->sensors.flow_fullscale_lpm > 0.f) ? cfg->sensors.flow_fullscale_lpm
+                                                               : FLOW_AXIS_FULLSCALE_LPM;
         float f_frac = clampf(last->flow_lpm / f_axis, 0.f, 1.f);
-        card_state_t fst = CARD_OK; const char *ftx = "NORMAL";
-        if (last->flow_lpm > f_axis * FLOW_HIGH_ZONE_FRAC) { fst = CARD_WARN; ftx = "CONSUMO ALTO"; }
+        card_state_t fst = CARD_OK; const char *ftx = _t("NORMAL");
+        if (last->flow_lpm > f_axis * FLOW_HIGH_ZONE_FRAC) { fst = CARD_WARN; ftx = _t("CONSUMO ALTO"); }
         float fmn = have_mm ? flow_to_disp(mn->flow_lpm, cfg->sensors.flow_unit) : f_disp;
         float fmx = have_mm ? flow_to_disp(mx->flow_lpm, cfg->sensors.flow_unit) : f_disp;
         update_metric_card(&s_flow, f_disp, f_frac, 0.f, FLOW_HIGH_ZONE_FRAC, false, fst, ftx, fmn, fmx);
         char fb[24];
         snprintf(fb, sizeof(fb), "%.0f", flow_to_disp(f_axis, cfg->sensors.flow_unit));
         lv_label_set_text(s_flow.ax_right, fb);
-        lv_label_set_text(s_flow.ax_mid, "alto");
+        lv_label_set_text(s_flow.ax_mid, _t("alto"));
+
+        /* --- Consumo acumulado del día --- */
+        if (s_consumo_prev_ts >= 0 && last->ts_ms > s_consumo_prev_ts) {
+            float dt_min = (float)(last->ts_ms - s_consumo_prev_ts) / 60000.f;
+            /* descarta huecos > 5 min (ajuste de reloj, pausa larga del muestreo) */
+            if (dt_min < 5.f && last->flow_lpm > 0.f)
+                s_consumo_m3 += last->flow_lpm * dt_min / 1000.f;
+        }
+        s_consumo_prev_ts = last->ts_ms;
+        if (s_consumo_val) {
+            char cb[40];
+            if (s_consumo_m3 < 0.1f)
+                snprintf(cb, sizeof(cb), "%.0f %s", (double)(s_consumo_m3 * 1000.f), _t("L hoy"));
+            else
+                snprintf(cb, sizeof(cb), "%.2f %s", (double)s_consumo_m3, _t("m\xC2\xB3 hoy"));
+            lv_label_set_text(s_consumo_val, cb);
+        }
     }
 }

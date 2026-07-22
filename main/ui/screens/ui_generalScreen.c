@@ -1,12 +1,32 @@
 #include "ui_generalScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
 #include "ui_nav.h"
+#include "ui_cfg.h"
+#include <string.h>
 
 /* Menú de ajustes generales (mockup 4e): grid 2x3 de tiles. */
 
 lv_obj_t *ui_generalScreen = NULL;
+
+/* Labels de valor que se refrescan al mostrar la pantalla (se crea una sola vez). */
+static lv_obj_t *s_val_brightness = NULL;
+static lv_obj_t *s_val_units = NULL;
+
+static void general_loaded_cb(lv_event_t *e)
+{
+    (void)e;
+    if (s_val_brightness)
+        lv_label_set_text_fmt(s_val_brightness, "%d%%", ui_cfg_brightness());
+    if (s_val_units) {
+        char p[8], f[8];
+        strncpy(p, ui_cfg_pressure_unit(), sizeof(p) - 1); p[sizeof(p) - 1] = '\0';
+        strncpy(f, ui_cfg_flow_unit(),     sizeof(f) - 1); f[sizeof(f) - 1] = '\0';
+        lv_label_set_text_fmt(s_val_units, "%s \xC2\xB7 %s", p, f);
+    }
+}
 
 static int32_t s_col_dsc[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST };
 static int32_t s_row_dsc[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST };
@@ -44,9 +64,9 @@ static lv_obj_t *gen_tile(lv_obj_t *grid, const char *sym, const char *title, co
     ui_label(col_c, title, UI_FONT_MD, UI_C_TEXT);
     if (sub) ui_label(col_c, sub, UI_FONT_XS, UI_C_TEXT_MUTED);
 
-    if (value) ui_label(tile, value, UI_FONT_SM, value_col);
+    lv_obj_t *val = value ? ui_label(tile, value, UI_FONT_SM, value_col) : NULL;
     ui_icon(tile, UI_SYM_CHEVRON_RIGHT, UI_ICON_SM, UI_C_TEXT_MUTED);
-    return tile;
+    return val; /* label de valor (o NULL) por si el caller quiere refrescarlo */
 }
 
 void ui_generalScreen_screen_init(void)
@@ -70,7 +90,7 @@ void ui_generalScreen_screen_init(void)
     back = ui_icon_badge(hb, UI_SYM_ARROW_LEFT, UI_ICON_SM, UI_C_TEXT, UI_C_CARD_BG, 28);
     lv_obj_add_flag(back, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(back, ui_nav_back_event_cb, LV_EVENT_CLICKED, NULL);
-    ui_label(hb, "Ajustes generales", UI_FONT_TITLE, UI_C_TEXT);
+    ui_label(hb, _t("Ajustes generales"), UI_FONT_TITLE, UI_C_TEXT);
     ui_label(hdr, "UCI Torre A", UI_FONT_XS, UI_C_TEXT_3);
 
     /* grid 2x3 */
@@ -82,21 +102,25 @@ void ui_generalScreen_screen_init(void)
     lv_obj_set_grid_dsc_array(grid, s_col_dsc, s_row_dsc);
     lv_obj_set_layout(grid, LV_LAYOUT_GRID);
 
-    gen_tile(grid, UI_SYM_BRIGHTNESS_UP, "Pantalla", "brillo · reposo", "80%",
+    s_val_brightness = gen_tile(grid, UI_SYM_BRIGHTNESS_UP, _t("Pantalla"), _t("brillo · reposo"), "80%",
              UI_C_BLUE, UI_C_TEXT_2, 0, 0, ui_open_general_simple_cb);
-    gen_tile(grid, UI_SYM_BELL, "Alarmas", "umbrales · buzzer", "NFPA 99",
+    gen_tile(grid, UI_SYM_BELL, _t("Alarmas"), _t("umbrales · buzzer"), "NFPA 99",
              UI_C_ALARM, UI_C_TEXT_2, 1, 0, ui_open_sensordiag_cb);
-    gen_tile(grid, UI_SYM_RULER_2, "Unidades", "presión · flujo", "psi · SCCM",
+    s_val_units = gen_tile(grid, UI_SYM_RULER_2, _t("Unidades"), _t("presión · flujo"), "psi · SCCM",
              UI_C_OK, UI_C_TEXT_2, 0, 1, ui_open_sensor_cb);
-    gen_tile(grid, UI_SYM_WIFI, "Red y nube", "wifi · MQTT", "conectado",
+    gen_tile(grid, UI_SYM_WIFI, _t("Red y nube"), "wifi · MQTT", _t("conectado"),
              UI_C_TEAL, UI_C_OK, 1, 1, ui_open_connectivity_cb);
-    gen_tile(grid, UI_SYM_CLOCK, "Fecha y hora", "zona · NTP", "GMT-5",
+    gen_tile(grid, UI_SYM_CLOCK, _t("Fecha y hora"), _t("zona · NTP"), "GMT-5",
              UI_C_WARN_SOFT, UI_C_TEXT_2, 0, 2, ui_open_general_simple_cb);
-    gen_tile(grid, UI_SYM_INFO_CIRCLE, "Información", "firmware · serie", NULL,
+    gen_tile(grid, UI_SYM_INFO_CIRCLE, _t("Información"), _t("firmware · serie"), NULL,
              UI_C_TEXT_2, UI_C_TEXT_2, 1, 2, ui_open_info_cb);
+
+    lv_obj_add_event_cb(ui_generalScreen, general_loaded_cb, LV_EVENT_SCREEN_LOADED, NULL);
+    general_loaded_cb(NULL); /* valores reales desde la primera carga */
 }
 
 void ui_generalScreen_screen_destroy(void)
 {
-    if (ui_generalScreen) { lv_obj_del(ui_generalScreen); ui_generalScreen = NULL; }
+    if (ui_generalScreen) { lv_obj_del(ui_generalScreen); ui_generalScreen = NULL;
+                            s_val_brightness = NULL; s_val_units = NULL; }
 }

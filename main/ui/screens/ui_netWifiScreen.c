@@ -1,4 +1,5 @@
 #include "ui_netWifiScreen.h"
+#include "ui_i18n.h"
 #include "ui_form.h"
 #include "ui_widgets.h"
 #include "ui_nav.h"
@@ -60,16 +61,16 @@ void ui_netWifiScreen_screen_init(void)
     lv_obj_t *content;
     ui_netWifiScreen = ui_form_begin("Wi-Fi", &content, save_cb);
 
-    s_sw = ui_form_switch(content, "Wi-Fi habilitado", "conexión inalámbrica",
+    s_sw = ui_form_switch(content, _t("Wi-Fi habilitado"), _t("conexión inalámbrica"),
                           cfg && cfg->wifi.enabled);
-    s_ssid = ui_form_textarea(content, "SSID (RED)", cfg ? cfg->wifi.ssid : "", false);
-    s_pwd  = ui_form_textarea(content, "CONTRASEÑA", cfg ? cfg->wifi.password : "", true);
-    s_ipmode = ui_form_dropdown(content, "MODO IP", "DHCP\nEstática",
+    s_ssid = ui_form_textarea(content, _t("SSID (RED)"), cfg ? cfg->wifi.ssid : "", false);
+    s_pwd  = ui_form_textarea(content, _t("CONTRASEÑA"), cfg ? cfg->wifi.password : "", true);
+    s_ipmode = ui_form_dropdown(content, _t("MODO IP"), _t("DHCP\nEstática"),
                                 (cfg && strcmp(cfg->wifi.ip_mode, "static") == 0) ? 1 : 0);
 
     lv_obj_t *r1 = ui_form_row2(content);
     s_ip   = ui_form_textarea(r1, "IP", cfg ? cfg->wifi.ip : "", false);
-    s_mask = ui_form_textarea(r1, "MÁSCARA", cfg ? cfg->wifi.mask : "", false);
+    s_mask = ui_form_textarea(r1, _t("MÁSCARA"), cfg ? cfg->wifi.mask : "", false);
     lv_obj_set_flex_grow(lv_obj_get_parent(s_ip), 1);
     lv_obj_set_flex_grow(lv_obj_get_parent(s_mask), 1);
 

@@ -1,4 +1,5 @@
 #include "ui_sensorEditScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
@@ -10,6 +11,25 @@
 
 lv_obj_t *ui_sensorEditScreen = NULL;
 static lv_obj_t *s_gas_lbl = NULL;
+static lv_obj_t *s_thr_val[2]  = { NULL, NULL };  /* [0]=mínimo, [1]=máximo */
+static lv_obj_t *s_thr_unit[2] = { NULL, NULL };
+
+/* Refresca umbrales al volver del flujo keypad→confirm→PIN (la pantalla persiste). */
+static void edit_loaded_cb(lv_event_t *e)
+{
+    (void)e;
+    const char *pu = ui_cfg_pressure_unit();
+    /* almacenados en kPa; se muestran en la unidad configurada */
+    float v[2] = { ui_cfg_press_to_disp(ui_cfg_pressure_min()),
+                   ui_cfg_press_to_disp(ui_cfg_pressure_max()) };
+    for (int i = 0; i < 2; i++) {
+        if (s_thr_val[i]) {
+            char buf[16]; ui_cfg_press_fmt(buf, sizeof(buf), v[i]);
+            lv_label_set_text(s_thr_val[i], buf);
+        }
+        if (s_thr_unit[i]) lv_label_set_text(s_thr_unit[i], pu);
+    }
+}
 
 static int32_t s_col[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST };
 static int32_t s_row[] = { LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST };
@@ -100,7 +120,7 @@ static void gas_click_cb(lv_event_t *e)
     int cur = idx_of(ui_cfg_gas(), GAS_KEY, 4);
     int nxt = (cur + 1) % 4;
     ui_cfg_set_gas(GAS_KEY[nxt]);
-    if (s_gas_lbl) lv_label_set_text(s_gas_lbl, GAS_LBL[nxt]);
+    if (s_gas_lbl) lv_label_set_text(s_gas_lbl, _t(GAS_LBL[nxt]));
 }
 
 /* ---- umbral: fija el objetivo y abre el keypad ---- */
@@ -135,9 +155,10 @@ static lv_obj_t *thr_box(lv_obj_t *parent, const char *label, float value, const
     lv_obj_set_flex_flow(vw, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(vw, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
     lv_obj_set_style_pad_column(vw, 4, 0);
-    char buf[16]; snprintf(buf, sizeof(buf), "%.0f", value);
-    ui_label(vw, buf, UI_FONT_LG, UI_C_ALARM);
-    ui_label(vw, unit, UI_FONT_XS, UI_C_TEXT_2);
+    char buf[16]; ui_cfg_press_fmt(buf, sizeof(buf), value);
+    int idx = (target == UI_EDIT_PRES_MAX) ? 1 : 0;
+    s_thr_val[idx]  = ui_label(vw, buf, UI_FONT_LG, UI_C_ALARM);
+    s_thr_unit[idx] = ui_label(vw, unit, UI_FONT_XS, UI_C_TEXT_2);
     return b;
 }
 
@@ -151,11 +172,11 @@ void ui_sensorEditScreen_screen_init(void)
     lv_obj_set_style_pad_all(ui_sensorEditScreen, 8, 0);
     lv_obj_set_style_pad_row(ui_sensorEditScreen, 7, 0);
 
-    lv_obj_t *hdr = ui_nav_header(ui_sensorEditScreen, "Sensores y alarmas");
+    lv_obj_t *hdr = ui_nav_header(ui_sensorEditScreen, _t("Sensores y alarmas"));
     lv_obj_t *pill = ui_pill(hdr, "", UI_FONT_XS, UI_C_OK_SOFT, UI_C_OK_BG, UI_C_OK_BORDER);
     lv_obj_set_flex_flow(pill, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(pill, 5, 0);
-    lv_label_set_text(lv_obj_get_child(pill, 0), "desbloqueado");
+    lv_label_set_text(lv_obj_get_child(pill, 0), _t("desbloqueado"));
     lv_obj_t *pi = ui_icon(pill, UI_SYM_LOCK_OPEN, UI_ICON_SM, UI_C_OK_SOFT);
     lv_obj_move_to_index(pi, 0);
 
@@ -168,21 +189,21 @@ void ui_sensorEditScreen_screen_init(void)
     lv_obj_set_layout(grid, LV_LAYOUT_GRID);
 
     /* TIPO DE GAS (clic = ciclar) */
-    lv_obj_t *gas = field_card(grid, "TIPO DE GAS");
+    lv_obj_t *gas = field_card(grid, _t("TIPO DE GAS"));
     lv_obj_set_grid_cell(gas, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_set_flex_flow(gas, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(gas, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(gas, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(gas, gas_click_cb, LV_EVENT_CLICKED, NULL);
-    s_gas_lbl = ui_label(gas, GAS_LBL[idx_of(ui_cfg_gas(), GAS_KEY, 4)], UI_FONT_LG, UI_C_OK);
+    s_gas_lbl = ui_label(gas, _t(GAS_LBL[idx_of(ui_cfg_gas(), GAS_KEY, 4)]), UI_FONT_LG, UI_C_OK);
     ui_icon(gas, UI_SYM_CHEVRON_DOWN, UI_ICON_SM, UI_C_TEXT_3);
 
     /* CÓDIGO DE COLOR */
-    lv_obj_t *cc = field_card(grid, "CÓDIGO DE COLOR");
+    lv_obj_t *cc = field_card(grid, _t("CÓDIGO DE COLOR"));
     lv_obj_set_grid_cell(cc, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_set_flex_flow(cc, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(cc, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    ui_label(cc, "NFPA · verde/blanco", UI_FONT_LG, UI_C_TEXT);
+    ui_label(cc, _t("NFPA · verde/blanco"), UI_FONT_LG, UI_C_TEXT);
     lv_obj_t *sw = ui_box(cc);
     lv_obj_set_size(sw, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(sw, LV_FLEX_FLOW_ROW);
@@ -196,24 +217,24 @@ void ui_sensorEditScreen_screen_init(void)
     }
 
     /* UNIDAD DE PRESIÓN */
-    lv_obj_t *up = field_card(grid, "UNIDAD DE PRESIÓN");
+    lv_obj_t *up = field_card(grid, _t("UNIDAD DE PRESIÓN"));
     lv_obj_set_grid_cell(up, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
     seg_control(up, PU_LBL, PU_KEY, 4, idx_of(pu, PU_KEY, 4), 0);
 
     /* UNIDAD DE FLUJO */
-    lv_obj_t *uf = field_card(grid, "UNIDAD DE FLUJO");
+    lv_obj_t *uf = field_card(grid, _t("UNIDAD DE FLUJO"));
     lv_obj_set_grid_cell(uf, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
     seg_control(uf, FU_LBL, FU_KEY, 3, idx_of(fu, FU_KEY, 3), 1);
 
     /* UMBRALES (span 2 columnas) */
-    lv_obj_t *thr = field_card(grid, "UMBRALES DE ALARMA · PRESIÓN (toca para editar)");
+    lv_obj_t *thr = field_card(grid, _t("UMBRALES DE ALARMA · PRESIÓN (toca para editar)"));
     lv_obj_set_grid_cell(thr, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 2, 1);
     lv_obj_t *thr_row = ui_box(thr);
     lv_obj_set_size(thr_row, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(thr_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(thr_row, 8, 0);
-    thr_box(thr_row, "Mínimo", ui_cfg_pressure_min(), pu, UI_EDIT_PRES_MIN);
-    thr_box(thr_row, "Máximo", ui_cfg_pressure_max(), pu, UI_EDIT_PRES_MAX);
+    thr_box(thr_row, _t("Mínimo"), ui_cfg_press_to_disp(ui_cfg_pressure_min()), pu, UI_EDIT_PRES_MIN);
+    thr_box(thr_row, _t("Máximo"), ui_cfg_press_to_disp(ui_cfg_pressure_max()), pu, UI_EDIT_PRES_MAX);
 
     /* footer */
     lv_obj_t *foot = ui_box(ui_sensorEditScreen);
@@ -222,11 +243,14 @@ void ui_sensorEditScreen_screen_init(void)
     lv_obj_set_flex_align(foot, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(foot, 6, 0);
     ui_icon(foot, UI_SYM_DEVICE_MOBILE_MESSAGE, UI_ICON_SM, UI_C_TEXT_MUTED);
-    ui_label(foot, "SSID, contraseñas y certificados AWS se configuran desde la app por BLE",
+    ui_label(foot, _t("SSID, contraseñas y certificados AWS se configuran desde la app por BLE"),
              UI_FONT_XS, UI_C_TEXT_MUTED);
+
+    lv_obj_add_event_cb(ui_sensorEditScreen, edit_loaded_cb, LV_EVENT_SCREEN_LOADED, NULL);
 }
 
 void ui_sensorEditScreen_screen_destroy(void)
 {
-    if (ui_sensorEditScreen) { lv_obj_del(ui_sensorEditScreen); ui_sensorEditScreen = NULL; s_gas_lbl = NULL; }
+    if (ui_sensorEditScreen) { lv_obj_del(ui_sensorEditScreen); ui_sensorEditScreen = NULL; s_gas_lbl = NULL;
+                               s_thr_val[0] = s_thr_val[1] = NULL; s_thr_unit[0] = s_thr_unit[1] = NULL; }
 }

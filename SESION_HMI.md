@@ -130,21 +130,78 @@ idf.py -p COMx flash monitor
 
 ---
 
-## 9. Pendiente (para próximas sesiones)
+## 9. Estado de pendientes (actualizado 2026-07-22)
 
-1. **`brightness`**: agregar campo por todo el pipeline (`storage.h` struct, `appcfg_defaults`,
-   `cfg_from_json`, `json_from_cfg`, `AppConfig.json`, stub del sim) + `bsp_display_brightness_set()` en
-   generalSimple. **Es el único hueco real del JSON.**
-2. **Consumo (m³)** en main: no hay backend (hoy placeholder `-- m³ hoy`). Definir acumulador de flujo.
-3. **infoScreen**: fechas de calibración/mantenimiento y FW versions son placeholders (no hay campos).
-4. **Import de certificados AWS** desde SD (`cert_store`) y **BLE mesh/provisioning** avanzados: portar del
-   `ui_events.c` viejo (respaldo).
-5. **i18n** (idioma es/en) y **zona horaria**: hoy visuales.
-6. **Escalas main**: `FLOW_AXIS_FULLSCALE_LPM` y eje de presión en `ui_mainScreen.c` a calibrar; conversión
-   "bar" replica `kPa/10` del FW original (¿debería ser `/100`?).
-7. **Pulido**: el label de umbral en sensorEdit muestra el valor viejo hasta re-entrar (el guardado sí ocurre).
-8. **Verificación firmware**: recompilar `idf.py build` tras las fases 3-5 (aún no reprobado en hardware con
-   las últimas pantallas/lógica).
+### Hecho en la sesión 2026-07-22
+1. ✅ **`brightness`**: campo por todo el pipeline (struct, defaults, json↔cfg, `AppConfig.json`, stub sim,
+   saneo 10–100 en `appcfg_migrate` para NVS viejos). `ui_cfg_preview_brightness()` (HW sin persistir) y
+   `ui_cfg_set_brightness()` (NVS+HW). Slider **funcional** en generalSimple (preview al arrastrar, guarda
+   al soltar). `main.c` aplica el brillo configurado al arrancar (antes 100% fijo).
+2. ✅ **Consumo (m³)** en main: integral de flujo (`∫ L/min·dt → m³`) en `ui_mainScreen.c` usando `ts_ms`
+   de la muestra (dt=0 si se repite muestra → sin doble conteo; huecos >5 min se descartan). Reset a
+   medianoche por rollover del reloj (`ui_main_set_clock`). Muestra "N L hoy" bajo 0.1 m³. **Vive en RAM**
+   (se pierde al reiniciar). El sim ahora pasa `lv_tick_get()` como ts.
+3. ✅ (parcial) **infoScreen**: VERSIÓN HW / FW APLICACIÓN reales (`general.hw_version/fw_version`);
+   fechas desde los campos nuevos `sensors.cal.last_cal_date` / `next_service_date` (pipeline completo,
+   los fija SD/app; "—" si vacíos). "Tiempo en servicio" quedó "—" (sin backend aún).
+7. ✅ **Pulido umbral**: sensorEdit refresca valores/unidades en `LV_EVENT_SCREEN_LOADED` (patrón también
+   aplicado en generalScreen: tiles Pantalla y Unidades muestran valores reales).
+8. ✅ **Verificación firmware**: `idf.py fullclean + build` OK (2026-07-22, IDF 6.0.1). *Nota: el build dir
+   viejo estaba configurado con otro venv de Python → exigió fullclean.* Falta **flashear en hardware**.
+- ✅ **Fix sim**: `s_host` en `ui_netEthScreen.c` colisionaba con la macro winsock de `inaddr.h`
+  (`#define s_host S_un.S_un_b.s_b2`) y rompía el build del sim → renombrado `s_hostname`.
+
+4. ✅ **Certs AWS + BLE mesh + UI de SD** (portado del `ui_events.c` viejo):
+   - **`ui_sd.{c,h}` (nuevo)**: overlay modal de mantenimiento por microSD (velo + tarjeta + barra +
+     estado por etapa + botón "Aplicar y reiniciar"). `main.c` sd_monitor_task lo usa en vez de los
+     widgets NULL de SquareLine (`sd_progress_bar`/`sd_restart_btn`, **crasheaban al insertar SD**).
+     Todas las funciones null-safe. ⚠️ Archivo nuevo → exigió `idf.py reconfigure` (GLOB de CMake) y
+     alta en el `.vcxproj` del sim.
+   - **netBleScreen**: sección Mesh completa (switch, TTL 1-7, relay, net/app key, identidad UUID/unicast
+     RO, botón provisioning). El provisioning sigue siendo el **stub del viejo** (marca `provisioned=true`;
+     flujo BLE real TODO). Save aplica `transport_ble_set_mesh_enabled()`.
+   - **netCloudScreen**: pills de presencia de certs (CA/cert/key) vía `cert_store_info()` (demo en sim),
+     nota de la ruta `/sdcard/aws`, y botón "Borrar certificados" (`cert_store_erase_all()`).
+   - El import en sí ya era automático en `sd_monitor_task` (AppConfig.json + `/sdcard/aws`); lo que
+     faltaba era la UI.
+
+5. ✅ **i18n es/en + zona horaria** (funcionales):
+   - **`ui_i18n.{c,h}` (nuevo)**: `_t("literal es")` + tabla es→en (~140 entradas). Sin traducción →
+     muestra español. ~154 literales envueltos en 17 archivos (script mecánico).
+   - Getters de `ui.c` ahora **fresh** (destruir+recrear al abrir): el idioma aplica al navegar y los
+     datos siempre están frescos. Seguro: al abrir X hacia adelante, X nunca está en la pila.
+   - Fila **Idioma** (generalSimple): alterna es⇄en, guarda, reconstruye la pantalla en su lugar
+     (`ui_nav_replace` + `lv_obj_delete_delayed`) y retraduce el main (títulos vía apply_config).
+     *Limitación menor: la pantalla `general` (padre en la pila) queda en el idioma viejo hasta reabrirla.*
+   - Fila **Zona horaria**: cicla 5 zonas (tabla IANA→POSIX en ui_cfg), guarda y aplica
+     `setenv("TZ")+tzset()`; `main.c` también la aplica al boot (reloj del header usa localtime).
+   - ⚠️ `_t()` NO sirve en inicializadores `static` (no es constante) → traducir en el punto de uso.
+6. ✅ **Escalas/conversiones**:
+   - **bar corregido**: era `kPa/10` (bug del FW original) → `/100`. Agregadas MPa (`/1000`) y m³/h (`×0.06`).
+   - Conversiones centralizadas en `ui_cfg` (`press_to_disp/from_disp/flow_to_disp/press_fmt`).
+   - **Fix**: sensorEdit/keypad/confirm mostraban umbrales crudos en kPa etiquetados con la unidad elegida;
+     ahora el flujo de edición opera en unidad de display y convierte a kPa solo al persistir.
+   - `FLOW_AXIS_FULLSCALE_LPM` (100 L/min) sigue siendo el fondo de escala a calibrar con el sensor real.
+
+### Cierre final (misma sesión 2026-07-22)
+- ✅ **BLE mesh RETIRADO de la UI** por decisión de producto (equipo hospitalario: la topología
+  gateway/nodo rotativo no se consideró segura). Los campos `bt.mesh.*` siguen en el schema de
+  AppConfig por compatibilidad; la app los ignora. `transport_ble_set_mesh_enabled` ya no se llama.
+- ✅ **`sensors.flow_fullscale_lpm`** (default 100.0) por todo el pipeline + saneo en migrate:
+  el eje de flujo del main es **calibrable sin recompilar** (JSON por SD o app BLE).
+- ✅ **`metrics_store.{c,h}`** (nuevo, en components/storage, NVS namespace "metrics" separado de
+  AppConfig): consumo del día (+fecha) y minutos de servicio. `ui_refresh_task` guarda cada 10 min
+  y siembra el consumo al arrancar si la fecha coincide (sobrevive reinicios). infoScreen muestra
+  "N días" reales (`appmetrics_service_min()`; stub del sim devuelve 184 días).
+- ✅ **AWS verificado**: el stack MQTT del proyecto original está intacto y cableado
+  (`net_core_init()` en main.c → transport_mqtt carga certs de cert_store, usa `cloud.broker_url`
+  y publica en `<topic_base>/telemetry`). Requisitos: certs importados por SD, `cloud.enabled`,
+  red activa. **Contratos para la app Flutter**: AppConfig.json vía BLE (config) + MQTT (telemetría).
+
+### Aún pendiente
+- **Flashear y probar en hardware** (nada de esta migración ha corrido aún en el ESP32-S3 real).
+- Pulido menor: pantalla `general` queda en idioma viejo hasta reabrir tras cambiar idioma; textos
+  demo de connectivity/diag sin cablear a datos reales; keypad sin decimales (bar/MPa).
 
 ---
 

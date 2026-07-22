@@ -1,4 +1,5 @@
 #include "ui_keypadScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
@@ -95,8 +96,8 @@ void ui_keypadScreen_screen_init(void)
     lv_obj_set_size(info, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(info, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(info, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    ui_label(info, "rango sensor 0–2200", UI_FONT_XS, UI_C_TEXT_MUTED);
-    ui_label(info, "✓ válido", UI_FONT_XS, UI_C_OK);
+    ui_label(info, _t("rango sensor 0–2200"), UI_FONT_XS, UI_C_TEXT_MUTED);
+    ui_label(info, _t("✓ válido"), UI_FONT_XS, UI_C_OK);
 
     lv_obj_t *sp = ui_box(left); lv_obj_set_flex_grow(sp, 1); lv_obj_set_width(sp, LV_PCT(100));
 
@@ -110,14 +111,14 @@ void ui_keypadScreen_screen_init(void)
     lv_obj_set_style_pad_ver(cancel, 9, 0);
     lv_obj_add_flag(cancel, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cancel, ui_nav_back_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_center(ui_label(cancel, "Cancelar", UI_FONT_SM, 0xcfd3d9));
+    lv_obj_center(ui_label(cancel, _t("Cancelar"), UI_FONT_SM, 0xcfd3d9));
     lv_obj_t *ok = ui_box(btns);
     lv_obj_set_flex_grow(ok, 1);
     ui_style_button(ok, UI_C_OK);
     lv_obj_set_style_pad_ver(ok, 9, 0);
     lv_obj_add_flag(ok, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(ok, accept_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_center(ui_label(ok, "Aceptar", UI_FONT_SM, 0x06251f));
+    lv_obj_center(ui_label(ok, _t("Aceptar"), UI_FONT_SM, 0x06251f));
 
     /* --- teclado numérico --- */
     lv_obj_t *pad = ui_box(ui_keypadScreen);

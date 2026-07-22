@@ -1,4 +1,5 @@
 #include "ui_confirmScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
@@ -43,10 +44,10 @@ void ui_confirmScreen_screen_init(void)
     lv_obj_set_style_bg_color(ib, ui_col(UI_C_WARN_SOFT), 0);
     lv_obj_set_style_bg_opa(ib, LV_OPA_20, 0);
     lv_obj_center(ui_icon(ib, UI_SYM_ALERT_TRIANGLE, UI_ICON_MD, UI_C_WARN_SOFT));
-    ui_label(tt, "Confirmar cambio crítico", UI_FONT_TITLE, UI_C_TEXT);
+    ui_label(tt, _t("Confirmar cambio crítico"), UI_FONT_TITLE, UI_C_TEXT);
 
-    lv_obj_t *desc = ui_label(card, "Vas a modificar un umbral de alarma de seguridad. Se enviará al "
-                              "MCU de control y se registrará con fecha y hora.", UI_FONT_SM, UI_C_TEXT_3);
+    lv_obj_t *desc = ui_label(card, _t("Vas a modificar un umbral de alarma de seguridad. Se enviará al "
+                              "MCU de control y se registrará con fecha y hora."), UI_FONT_SM, UI_C_TEXT_3);
     lv_obj_set_width(desc, LV_PCT(100));
     lv_label_set_long_mode(desc, LV_LABEL_LONG_WRAP);
 
@@ -67,10 +68,10 @@ void ui_confirmScreen_screen_init(void)
     lv_obj_set_flex_flow(lc, LV_FLEX_FLOW_COLUMN);
     lv_obj_t *cap = ui_label(lc, ui_edit_label(), UI_FONT_XS, UI_C_TEXT_MUTED);
     lv_obj_set_style_text_letter_space(cap, 1, 0);
-    ui_label(lc, "antes", UI_FONT_SM, UI_C_TEXT_2);
+    ui_label(lc, _t("antes"), UI_FONT_SM, UI_C_TEXT_2);
     char ob[16], nb[16];
-    snprintf(ob, sizeof(ob), "%.0f", ui_edit_old());
-    snprintf(nb, sizeof(nb), "%.0f", ui_edit_new());
+    ui_cfg_press_fmt(ob, sizeof(ob), ui_edit_old());
+    ui_cfg_press_fmt(nb, sizeof(nb), ui_edit_new());
     ui_label(row, ob, UI_FONT_LG, UI_C_TEXT_2);
     ui_icon(row, UI_SYM_ARROW_RIGHT, UI_ICON_SM, UI_C_TEXT_MUTED);
     ui_label(row, nb, UI_FONT_LG, UI_C_OK);
@@ -87,7 +88,7 @@ void ui_confirmScreen_screen_init(void)
     lv_obj_set_style_pad_ver(cancel, 10, 0);
     lv_obj_add_flag(cancel, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cancel, ui_nav_back_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_center(ui_label(cancel, "Cancelar", UI_FONT_MD, 0xcfd3d9));
+    lv_obj_center(ui_label(cancel, _t("Cancelar"), UI_FONT_MD, 0xcfd3d9));
     lv_obj_t *ok = ui_box(btns);
     lv_obj_set_flex_grow(ok, 2);
     ui_style_button(ok, UI_C_OK);
@@ -98,7 +99,7 @@ void ui_confirmScreen_screen_init(void)
     lv_obj_add_flag(ok, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(ok, ui_open_pin_cb, LV_EVENT_CLICKED, NULL);
     ui_icon(ok, UI_SYM_SHIELD_CHECK, UI_ICON_SM, 0x06251f);
-    ui_label(ok, "Confirmar con PIN", UI_FONT_MD, 0x06251f);
+    ui_label(ok, _t("Confirmar con PIN"), UI_FONT_MD, 0x06251f);
 }
 
 void ui_confirmScreen_screen_destroy(void)

@@ -1,4 +1,5 @@
 #include "ui_bleAppScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui_nav.h"
@@ -37,10 +38,10 @@ void ui_bleAppScreen_screen_init(void)
     lv_obj_set_style_bg_opa(badge, LV_OPA_20, 0);
     lv_obj_center(ui_icon(badge, UI_SYM_BLUETOOTH, UI_ICON_MD, UI_C_BLUE));
 
-    lv_obj_t *t = ui_label(left, "Configurar por app", UI_FONT_XL, UI_C_TEXT);
+    lv_obj_t *t = ui_label(left, _t("Configurar por app"), UI_FONT_XL, UI_C_TEXT);
     lv_obj_set_style_margin_top(t, 12, 0);
-    lv_obj_t *desc = ui_label(left, "Wi-Fi, contraseñas, certificados AWS, IP y nombre del equipo se "
-                              "escriben desde la app de servicio — no se teclean en la pantalla.",
+    lv_obj_t *desc = ui_label(left, _t("Wi-Fi, contraseñas, certificados AWS, IP y nombre del equipo se "
+                              "escriben desde la app de servicio — no se teclean en la pantalla."),
                               UI_FONT_SM, UI_C_TEXT_3);
     lv_obj_set_width(desc, LV_PCT(100));
     lv_label_set_long_mode(desc, LV_LABEL_LONG_WRAP);
@@ -61,7 +62,7 @@ void ui_bleAppScreen_screen_init(void)
     ui_icon(adv, UI_SYM_RADAR_2, UI_ICON_SM, UI_C_OK_SOFT);
     ui_label(adv, "Anunciando por BLE · visible como MPF-4200-1847", UI_FONT_SM, UI_C_OK_SOFT);
 
-    lv_obj_t *dl = ui_label(left, "Descarga «Axira Service» · empareja y continúa en el teléfono",
+    lv_obj_t *dl = ui_label(left, _t("Descarga «Axira Service» · empareja y continúa en el teléfono"),
                             UI_FONT_XS, UI_C_TEXT_MUTED);
     lv_obj_set_style_margin_top(dl, 10, 0);
 
@@ -77,7 +78,7 @@ void ui_bleAppScreen_screen_init(void)
     lv_obj_set_style_bg_opa(qr, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(qr, UI_RADIUS_TILE, 0);
     lv_obj_center(ui_icon(qr, UI_SYM_QRCODE, UI_ICON_LG, 0x0f1115));
-    ui_label(right, "Escanea para emparejar", UI_FONT_XS, UI_C_TEXT_3);
+    ui_label(right, _t("Escanea para emparejar"), UI_FONT_XS, UI_C_TEXT_3);
 }
 
 void ui_bleAppScreen_screen_destroy(void)

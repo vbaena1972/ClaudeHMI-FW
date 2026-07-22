@@ -1,4 +1,5 @@
 #include "ui_netBleScreen.h"
+#include "ui_i18n.h"
 #include "ui_form.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
@@ -7,6 +8,7 @@
 #include "storage.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #ifdef ESP_PLATFORM
 #include "transport_ble.h"
@@ -16,6 +18,10 @@
 
 lv_obj_t *ui_netBleScreen = NULL;
 static lv_obj_t *s_sw, *s_adv, *s_name, *s_pin, *s_sec, *s_txp;
+
+/* Nota: BLE mesh fue RETIRADO de la UI por decisión de producto (equipo
+ * hospitalario: la topología gateway/nodo rotativo no se consideró segura).
+ * Los campos bt.mesh.* siguen en AppConfig por compatibilidad de schema. */
 
 static void set_str(char *dst, size_t cap, const char *src)
 { strncpy(dst, src ? src : "", cap - 1); dst[cap - 1] = '\0'; }
@@ -53,16 +59,16 @@ void ui_netBleScreen_screen_init(void)
     lv_obj_t *content;
     ui_netBleScreen = ui_form_begin("Bluetooth LE", &content, save_cb);
 
-    s_sw  = ui_form_switch(content, "Bluetooth habilitado", "app de servicio por BLE",
+    s_sw  = ui_form_switch(content, _t("Bluetooth habilitado"), _t("app de servicio por BLE"),
                            cfg && cfg->bt.enabled);
-    s_adv = ui_form_switch(content, "Anunciando (visible)", "detectable para emparejar",
+    s_adv = ui_form_switch(content, _t("Anunciando (visible)"), _t("detectable para emparejar"),
                            cfg && cfg->bt.advertise);
-    s_name = ui_form_textarea(content, "NOMBRE DEL EQUIPO", cfg ? cfg->bt.legacy.name : "", false);
-    s_pin  = ui_form_textarea(content, "PIN (6 dígitos)", cfg ? cfg->bt.legacy.pin : "", false);
-    s_sec  = ui_form_dropdown(content, "SEGURIDAD", "Just Works\nPasskey (PIN)",
+    s_name = ui_form_textarea(content, _t("NOMBRE DEL EQUIPO"), cfg ? cfg->bt.legacy.name : "", false);
+    s_pin  = ui_form_textarea(content, _t("PIN (6 dígitos)"), cfg ? cfg->bt.legacy.pin : "", false);
+    s_sec  = ui_form_dropdown(content, _t("SEGURIDAD"), "Just Works\nPasskey (PIN)",
                               cfg ? (int)cfg->bt.legacy.sec_mode : 0);
-    s_txp  = ui_form_dropdown(content, "POTENCIA TX",
-                              "Muy bajo\nBajo\nBajo-medio\nMedio\nMedio-alto\nAlto\nMuy alto\nMáximo",
+    s_txp  = ui_form_dropdown(content, _t("POTENCIA TX"),
+                              _t("Muy bajo\nBajo\nBajo-medio\nMedio\nMedio-alto\nAlto\nMuy alto\nMáximo"),
                               cfg ? (int)cfg->bt.tx_power : 3);
 
     /* acceso a la pantalla de emparejamiento por QR */
@@ -76,7 +82,7 @@ void ui_netBleScreen_screen_init(void)
     lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(btn, ui_open_bleapp_cb, LV_EVENT_CLICKED, NULL);
     ui_icon(btn, UI_SYM_RADAR_2, UI_ICON_SM, UI_C_BLUE);
-    ui_label(btn, "Configurar por app (QR de emparejamiento)", UI_FONT_SM, UI_C_BLUE);
+    ui_label(btn, _t("Configurar por app (QR de emparejamiento)"), UI_FONT_SM, UI_C_BLUE);
 }
 
 void ui_netBleScreen_screen_destroy(void)

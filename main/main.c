@@ -23,6 +23,7 @@
 #include "pinmap.h"
 #include "lvgl.h"
 #include "ui.h"
+#include "ui_sd.h"
 #include "driver/i2c_master.h"
 #include "driver/sdmmc_host.h"
 #include "driver/gpio.h"
@@ -37,6 +38,7 @@
 #include "wifi_mgr.h"
 #include "eth_mgr.h"
 #include "storage.h"
+#include "metrics_store.h"
 #include "net_core.h"
 #include "cert_store.h"
 #include "sensors_runtime.h"
@@ -111,9 +113,7 @@ static bool wifi_cfg_valid = false;
     }
 
 static SemaphoreHandle_t s_sd_sem = NULL;
-static lv_obj_t *sd_update_screen = NULL;
-static lv_obj_t *sd_progress_bar = NULL;
-static lv_obj_t *sd_restart_btn = NULL;
+/* La UI del flujo SD vive ahora en main/ui/ui_sd.c (overlay modal del design system). */
 
 static heap_trace_record_t trace_record[400];
 
@@ -141,38 +141,6 @@ static void restart_btn_event_cb(lv_event_t *e)
     ESP_LOGW("MAIN", "Reiniciando equipo por confirmación del usuario...");
     esp_restart();
 }
-
-// // UI: Crear pantalla flotante de actualización
-// static void create_sd_update_ui(void)
-// {
-//     // Bloquear la pantalla actual creando una ventana modal a pantalla completa
-//     sd_update_screen = lv_obj_create(lv_scr_act());
-//     lv_obj_set_size(sd_update_screen, 480, 320); // Tamaño de tu pantalla ST7796
-//     lv_obj_center(sd_update_screen);
-//     lv_obj_set_style_bg_color(sd_update_screen, lv_palette_main(LV_PALETTE_BLUE_GREY), 0);
-
-//     lv_obj_t *title = lv_label_create(sd_update_screen);
-//     lv_label_set_text(title, "Mantenimiento Vexel: MicroSD Detectada");
-//     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
-
-//     // Widget de Barra de Progreso
-//     sd_progress_bar = lv_bar_create(sd_update_screen);
-//     lv_obj_set_size(sd_progress_bar, 300, 25);
-//     lv_obj_align(sd_progress_bar, LV_ALIGN_CENTER, 0, -10);
-//     lv_bar_set_range(sd_progress_bar, 0, 100);
-//     lv_bar_set_value(sd_progress_bar, 0, LV_ANIM_ON);
-
-//     // Botón oculto inicialmente para el reinicio
-//     sd_restart_btn = lv_btn_create(sd_update_screen);
-//     lv_obj_set_size(sd_restart_btn, 160, 45);
-//     lv_obj_align(sd_restart_btn, LV_ALIGN_BOTTOM_MID, 0, -30);
-//     lv_obj_add_flag(sd_restart_btn, LV_OBJ_FLAG_HIDDEN); // Ocultar
-//     lv_obj_add_event_cb(sd_restart_btn, restart_btn_event_cb, LV_EVENT_CLICKED, NULL);
-
-//     lv_obj_t *btn_label = lv_label_create(sd_restart_btn);
-//     lv_label_set_text(btn_label, "Aplicar y Reiniciar");
-//     lv_obj_center(btn_label);
-// }
 
 // Función obligatoria en ESP-IDF v6 para enlazar SystemView y AppTrace
 esp_trace_open_params_t esp_trace_get_user_params(void)
@@ -332,8 +300,8 @@ static void sd_monitor_task(void *pvParameters)
             // 3. UI: ¡ADENTRO DEL MUTEX!
             if (bsp_display_lock(portMAX_DELAY))
             {
-                //create_sd_update_ui();
-                lv_bar_set_value(sd_progress_bar, 10, LV_ANIM_ON);
+                ui_sd_show();
+                ui_sd_progress(10, "Tarjeta detectada…");
                 bsp_display_unlock();
             }
 
@@ -356,7 +324,7 @@ static void sd_monitor_task(void *pvParameters)
             {
                 if (bsp_display_lock(portMAX_DELAY))
                 {
-                    lv_bar_set_value(sd_progress_bar, 50, LV_ANIM_ON);
+                    ui_sd_progress(50, "Aplicando AppConfig.json…");
                     bsp_display_unlock();
                 }
 
@@ -425,7 +393,7 @@ static void sd_monitor_task(void *pvParameters)
 
             if (bsp_display_lock(portMAX_DELAY))
             {
-                lv_bar_set_value(sd_progress_bar, 70, LV_ANIM_ON);
+                ui_sd_progress(70, "Importando certificados AWS…");
                 bsp_display_unlock();
             }
 
@@ -438,7 +406,7 @@ static void sd_monitor_task(void *pvParameters)
 
             if (bsp_display_lock(portMAX_DELAY))
             {
-                lv_bar_set_value(sd_progress_bar, 100, LV_ANIM_ON);
+                ui_sd_progress(100, "Completado");
                 bsp_display_unlock();
             }
             vTaskDelay(pdMS_TO_TICKS(500));
@@ -448,7 +416,7 @@ static void sd_monitor_task(void *pvParameters)
             {
                 if (bsp_display_lock(portMAX_DELAY))
                 {
-                    lv_obj_remove_flag(sd_restart_btn, LV_OBJ_FLAG_HIDDEN);
+                    ui_sd_finish_restart(restart_btn_event_cb);
                     bsp_display_unlock();
                 }
                 ESP_LOGW("SD_CD", "Esperando confirmación táctil para reiniciar.");
@@ -457,7 +425,7 @@ static void sd_monitor_task(void *pvParameters)
             {
                 if (bsp_display_lock(portMAX_DELAY))
                 {
-                    lv_obj_del(sd_update_screen);
+                    ui_sd_close();
                     bsp_display_unlock();
                 }
                 ESP_LOGI("SD_CD", "No se actualizó nada. Desmontando tarjeta...");
@@ -571,7 +539,11 @@ static void screen_init_task(void *arg)
     bsp_display_brightness_set(10);
     bsp_display_backlight_on();
     vTaskDelay(pdMS_TO_TICKS(10));
-    bsp_display_brightness_set(100);
+    {
+        /* Brillo configurado por el usuario (general.brightness, saneado en appcfg_migrate) */
+        const AppConfig *bcfg = appcfg_cache_peek();
+        bsp_display_brightness_set(bcfg ? bcfg->general.brightness : 100);
+    }
     bsp_display_on();
     ESP_LOGI(TAG, "UI iniciada");
 
@@ -719,6 +691,12 @@ static void ui_refresh_task(void *arg)
     char clockbuf[8];
     time_t last_clock_min = -1;
 
+    /* --- Métricas persistentes (consumo del día + minutos de servicio) --- */
+    app_metrics_t metrics;
+    appmetrics_load(&metrics);
+    bool metrics_seeded = false;      /* siembra del consumo pendiente hasta tener fecha válida */
+    time_t last_metrics_save = 0;
+
     while (true)
     {
         bool have_last = sensors_runtime_get_last(&last);
@@ -753,6 +731,27 @@ static void ui_refresh_task(void *arg)
                 strftime(clockbuf, sizeof(clockbuf), "%H:%M", &tm_now);
                 ui_main_set_clock(clockbuf);
                 last_clock_min = now / 60;
+
+                /* --- Métricas: siembra al arrancar + guardado cada 10 min --- */
+                char today[12];
+                strftime(today, sizeof(today), "%Y-%m-%d", &tm_now);
+                if (!metrics_seeded)
+                {
+                    /* si lo guardado es de HOY, restaurar el consumo tras el reinicio */
+                    if (strcmp(metrics.date, today) == 0)
+                        ui_main_set_consumo(metrics.consumo_m3);
+                    metrics_seeded = true;
+                    last_metrics_save = now;
+                }
+                else if (now - last_metrics_save >= 600)
+                {
+                    metrics.service_min += (uint32_t)((now - last_metrics_save) / 60);
+                    strncpy(metrics.date, today, sizeof(metrics.date) - 1);
+                    metrics.date[sizeof(metrics.date) - 1] = '\0';
+                    metrics.consumo_m3 = ui_main_get_consumo();
+                    (void)appmetrics_store(&metrics);
+                    last_metrics_save = now;
+                }
             }
 
             if (ui_mainScreen)
@@ -793,6 +792,13 @@ void app_main(void)
     // ... tras nvs_flash_init() OK
     extern esp_err_t appcfg_cache_reload(void);
     appcfg_cache_reload(); // carga NVS -> DRAM (stack interno de main), seguro
+
+    /* Zona horaria configurada -> TZ del RTC (localtime en ui_refresh_task) */
+    {
+        extern void ui_cfg_apply_timezone(const char *iana);
+        const AppConfig *tzc = appcfg_cache_peek();
+        if (tzc) ui_cfg_apply_timezone(tzc->general.timezone);
+    }
     mem_diag_report("AFTER-APPCFG-RELOAD");
     // LVGL init
     lv_init();

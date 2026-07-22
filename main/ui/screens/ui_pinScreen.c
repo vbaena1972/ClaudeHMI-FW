@@ -1,4 +1,5 @@
 #include "ui_pinScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui.h"
@@ -95,9 +96,9 @@ void ui_pinScreen_screen_init(void)
     lv_obj_set_style_bg_opa(badge, LV_OPA_20, 0);
     lv_obj_center(ui_icon(badge, UI_SYM_LOCK, UI_ICON_MD, UI_C_OK));
 
-    lv_obj_t *t = ui_label(left, "Acceso protegido", UI_FONT_XL, UI_C_TEXT);
+    lv_obj_t *t = ui_label(left, _t("Acceso protegido"), UI_FONT_XL, UI_C_TEXT);
     lv_obj_set_style_margin_top(t, 12, 0);
-    lv_obj_t *desc = ui_label(left, "Introduce el PIN de servicio para cambiar parámetros críticos.",
+    lv_obj_t *desc = ui_label(left, _t("Introduce el PIN de servicio para cambiar parámetros críticos."),
                               UI_FONT_SM, UI_C_TEXT_3);
     lv_obj_set_width(desc, LV_PCT(100));
     lv_label_set_long_mode(desc, LV_LABEL_LONG_WRAP);
@@ -124,7 +125,7 @@ void ui_pinScreen_screen_init(void)
     lv_obj_set_style_pad_column(note, 6, 0);
     lv_obj_set_style_margin_top(note, 16, 0);
     ui_icon(note, UI_SYM_SHIELD_LOCK, UI_ICON_SM, UI_C_TEXT_MUTED);
-    ui_label(note, "Cambios se registran con RTC y usuario", UI_FONT_XS, UI_C_TEXT_MUTED);
+    ui_label(note, _t("Cambios se registran con RTC y usuario"), UI_FONT_XS, UI_C_TEXT_MUTED);
 
     /* teclado */
     lv_obj_t *pad = ui_box(ui_pinScreen);

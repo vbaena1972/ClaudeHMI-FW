@@ -1,4 +1,5 @@
 #include "ui_netEthScreen.h"
+#include "ui_i18n.h"
 #include "ui_form.h"
 #include "ui_widgets.h"
 #include "ui_nav.h"
@@ -12,7 +13,7 @@
 #endif
 
 lv_obj_t *ui_netEthScreen = NULL;
-static lv_obj_t *s_sw, *s_host, *s_ipmode, *s_ip, *s_mask, *s_gw, *s_dns1, *s_dns2;
+static lv_obj_t *s_sw, *s_hostname, *s_ipmode, *s_ip, *s_mask, *s_gw, *s_dns1, *s_dns2;
 
 static void set_str(char *dst, size_t cap, const char *src)
 { strncpy(dst, src ? src : "", cap - 1); dst[cap - 1] = '\0'; }
@@ -24,7 +25,7 @@ static void save_cb(lv_event_t *e)
     if (!cfg) return;
 
     cfg->eth.enabled = lv_obj_has_state(s_sw, LV_STATE_CHECKED);
-    set_str(cfg->eth.hostname, sizeof(cfg->eth.hostname), lv_textarea_get_text(s_host));
+    set_str(cfg->eth.hostname, sizeof(cfg->eth.hostname), lv_textarea_get_text(s_hostname));
     set_str(cfg->eth.ip_mode, sizeof(cfg->eth.ip_mode),
             lv_dropdown_get_selected(s_ipmode) == 1 ? "static" : "dhcp");
     set_str(cfg->eth.ip, sizeof(cfg->eth.ip), lv_textarea_get_text(s_ip));
@@ -49,15 +50,15 @@ void ui_netEthScreen_screen_init(void)
     lv_obj_t *content;
     ui_netEthScreen = ui_form_begin("Ethernet", &content, save_cb);
 
-    s_sw = ui_form_switch(content, "Ethernet habilitado", "respaldo cableado (failover)",
+    s_sw = ui_form_switch(content, _t("Ethernet habilitado"), _t("respaldo cableado (failover)"),
                           cfg && cfg->eth.enabled);
-    s_host = ui_form_textarea(content, "HOSTNAME", cfg ? cfg->eth.hostname : "", false);
-    s_ipmode = ui_form_dropdown(content, "MODO IP", "DHCP\nEstática",
+    s_hostname = ui_form_textarea(content, "HOSTNAME", cfg ? cfg->eth.hostname : "", false);
+    s_ipmode = ui_form_dropdown(content, _t("MODO IP"), _t("DHCP\nEstática"),
                                 (cfg && strcmp(cfg->eth.ip_mode, "static") == 0) ? 1 : 0);
 
     lv_obj_t *r1 = ui_form_row2(content);
     s_ip   = ui_form_textarea(r1, "IP", cfg ? cfg->eth.ip : "", false);
-    s_mask = ui_form_textarea(r1, "MÁSCARA", cfg ? cfg->eth.mask : "", false);
+    s_mask = ui_form_textarea(r1, _t("MÁSCARA"), cfg ? cfg->eth.mask : "", false);
     lv_obj_set_flex_grow(lv_obj_get_parent(s_ip), 1);
     lv_obj_set_flex_grow(lv_obj_get_parent(s_mask), 1);
 

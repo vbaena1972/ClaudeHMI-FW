@@ -1,9 +1,12 @@
 #include "ui_infoScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui_nav.h"
 #include "storage.h"
+#include "metrics_store.h"
 #include <string.h>
+#include <stdio.h>
 
 /* Información del equipo (mockup 4f). */
 
@@ -32,10 +35,10 @@ static lv_obj_t *kv_card(lv_obj_t *parent, const char *label, const char *value,
 
 static const char *gas_label(const char *g)
 {
-    if (g && strcmp(g, "air_med") == 0) return "Aire med. (AIR)";
-    if (g && strcmp(g, "n2o") == 0)     return "Óxido nitroso (N₂O)";
-    if (g && strcmp(g, "vac") == 0)     return "Vacío (VAC)";
-    return "Oxígeno (O₂)";
+    if (g && strcmp(g, "air_med") == 0) return _t("Aire med. (AIR)");
+    if (g && strcmp(g, "n2o") == 0)     return _t("Óxido nitroso (N₂O)");
+    if (g && strcmp(g, "vac") == 0)     return _t("Vacío (VAC)");
+    return _t("Oxígeno (O₂)");
 }
 
 void ui_infoScreen_screen_init(void)
@@ -59,7 +62,7 @@ void ui_infoScreen_screen_init(void)
     lv_obj_t *back = ui_icon_badge(hb, UI_SYM_ARROW_LEFT, UI_ICON_SM, UI_C_TEXT, UI_C_CARD_BG, 28);
     lv_obj_add_flag(back, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(back, ui_nav_back_event_cb, LV_EVENT_CLICKED, NULL);
-    ui_label(hb, "Información del equipo", UI_FONT_TITLE, UI_C_TEXT);
+    ui_label(hb, _t("Información del equipo"), UI_FONT_TITLE, UI_C_TEXT);
 
     lv_obj_t *badge = ui_pill(hdr, "", UI_FONT_XS, UI_C_OK_SOFT, UI_C_OK_BG, UI_C_OK_BORDER);
     lv_obj_set_flex_flow(badge, LV_FLEX_FLOW_ROW);
@@ -97,13 +100,18 @@ void ui_infoScreen_screen_init(void)
     lv_obj_set_grid_dsc_array(kvg, s_kv_col, s_kv_row);
     lv_obj_set_layout(kvg, LV_LAYOUT_GRID);
     lv_obj_t *k;
-    k = kv_card(kvg, "N.º DE SERIE", cfg && cfg->general.serial[0] ? cfg->general.serial : "AX-4200-01847", UI_C_TEXT);
+    k = kv_card(kvg, _t("N.º DE SERIE"), cfg && cfg->general.serial[0] ? cfg->general.serial : "AX-4200-01847", UI_C_TEXT);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-    k = kv_card(kvg, "GAS CONFIGURADO", gas_label(cfg ? cfg->sensors.gas_type : "o2"), UI_C_OK);
+    k = kv_card(kvg, _t("GAS CONFIGURADO"), gas_label(cfg ? cfg->sensors.gas_type : "o2"), UI_C_OK);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-    k = kv_card(kvg, "FW MCU CONTROL", "v2.4.1", UI_C_TEXT);
+    char verbuf[24];
+    snprintf(verbuf, sizeof(verbuf), "v%s",
+             cfg && cfg->general.hw_version[0] ? cfg->general.hw_version : "-");
+    k = kv_card(kvg, _t("VERSIÓN HW"), verbuf, UI_C_TEXT);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-    k = kv_card(kvg, "FW MCU APLICACIÓN", "v1.8.0", UI_C_TEXT);
+    snprintf(verbuf, sizeof(verbuf), "v%s",
+             cfg && cfg->general.fw_version[0] ? cfg->general.fw_version : "-");
+    k = kv_card(kvg, _t("FW APLICACIÓN"), verbuf, UI_C_TEXT);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
 
     /* grid inferior 3x1 */
@@ -113,11 +121,22 @@ void ui_infoScreen_screen_init(void)
     lv_obj_set_style_pad_column(botg, 7, 0);
     lv_obj_set_grid_dsc_array(botg, s_bot_col, s_bot_row);
     lv_obj_set_layout(botg, LV_LAYOUT_GRID);
-    k = kv_card(botg, "TIEMPO EN SERVICIO", "184 días", UI_C_TEXT);
+    /* Tiempo en servicio: minutos acumulados en NVS (metrics_store) -> días */
+    char svc[24];
+    uint32_t svc_min = appmetrics_service_min();
+    if (svc_min >= 60)
+        snprintf(svc, sizeof(svc), "%lu %s", (unsigned long)(svc_min / 1440u), _t("días"));
+    else
+        snprintf(svc, sizeof(svc), "\xE2\x80\x94");   /* aún sin datos */
+    k = kv_card(botg, _t("TIEMPO EN SERVICIO"), svc, UI_C_TEXT);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-    k = kv_card(botg, "ÚLTIMA CALIBRACIÓN", "12 mar 2026", UI_C_TEXT);
+    k = kv_card(botg, _t("ÚLTIMA CALIBRACIÓN"),
+                cfg && cfg->sensors.cal.last_cal_date[0] ? cfg->sensors.cal.last_cal_date : "\xE2\x80\x94",
+                UI_C_TEXT);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-    k = kv_card(botg, "PRÓX. MANTENIM.", "08 sep 2026", UI_C_WARN_SOFT);
+    k = kv_card(botg, _t("PRÓX. MANTENIM."),
+                cfg && cfg->sensors.cal.next_service_date[0] ? cfg->sensors.cal.next_service_date : "\xE2\x80\x94",
+                UI_C_WARN_SOFT);
     lv_obj_set_grid_cell(k, LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
     /* pie con QR */
@@ -127,7 +146,7 @@ void ui_infoScreen_screen_init(void)
     lv_obj_set_flex_align(foot, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(foot, 8, 0);
     ui_icon(foot, UI_SYM_QRCODE, UI_ICON_SM, 0x4a5058);
-    ui_label(foot, "Escanea para historial y manual · soporte@axira.com", UI_FONT_XS, 0x4a5058);
+    ui_label(foot, _t("Escanea para historial y manual · soporte@axira.com"), UI_FONT_XS, 0x4a5058);
 }
 
 void ui_infoScreen_screen_destroy(void)

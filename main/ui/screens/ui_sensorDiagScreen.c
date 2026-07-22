@@ -1,4 +1,5 @@
 #include "ui_sensorDiagScreen.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 
@@ -48,8 +49,8 @@ static void sensor_row(lv_obj_t *parent, const char *sym, uint32_t icon_col,
     ui_label(nc, name, UI_FONT_MD, UI_C_TEXT);
     ui_label(nc, desc, UI_FONT_XS, UI_C_TEXT_MUTED);
 
-    kvcol(r, "CRUDO", raw);
-    kvcol(r, "CAL.", cal);
+    kvcol(r, _t("CRUDO"), raw);
+    kvcol(r, _t("CAL."), cal);
 
     lv_obj_t *pill = ui_box(r);
     lv_obj_set_size(pill, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -100,7 +101,7 @@ void ui_sensorDiagScreen_screen_init(void)
     lv_obj_set_style_pad_all(ui_sensorDiagScreen, 8, 0);
     lv_obj_set_style_pad_row(ui_sensorDiagScreen, 7, 0);
 
-    lv_obj_t *hdr = ui_nav_header(ui_sensorDiagScreen, "Sensores");
+    lv_obj_t *hdr = ui_nav_header(ui_sensorDiagScreen, _t("Sensores"));
     ui_pill(hdr, "3 activos · 0 fallas", UI_FONT_XS, UI_C_OK_DIM, UI_C_OK_BG, UI_C_OK_BORDER);
 
     lv_obj_t *rows = ui_box(ui_sensorDiagScreen);
@@ -109,19 +110,19 @@ void ui_sensorDiagScreen_screen_init(void)
     lv_obj_set_flex_flow(rows, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(rows, 7, 0);
 
-    sensor_row(rows, UI_SYM_GAUGE, UI_C_OK, "Presión · P-01", "transductor 0–2200 psi · I²C 0x28",
+    sensor_row(rows, UI_SYM_GAUGE, UI_C_OK, _t("Presión · P-01"), _t("transductor 0–2200 psi · I²C 0x28"),
                "3.412 V · 1400 psi", "12 mar 2026", "OK", UI_C_OK);
-    sensor_row(rows, UI_SYM_WIND, UI_C_OK, "Flujo · F-01", "másico térmico 0–1500 SCCM · UART",
+    sensor_row(rows, UI_SYM_WIND, UI_C_OK, _t("Flujo · F-01"), _t("másico térmico 0–1500 SCCM · UART"),
                "2.870 V · 889 SCCM", "12 mar 2026", "OK", UI_C_OK);
-    sensor_row(rows, UI_SYM_TEMPERATURE, UI_C_WARN_SOFT, "Temp. de línea · T-01", "compensación de flujo · on-die",
-               "— · 23.4 °C", "fábrica", "DERIVA", UI_C_WARN_SOFT);
+    sensor_row(rows, UI_SYM_TEMPERATURE, UI_C_WARN_SOFT, _t("Temp. de línea · T-01"), _t("compensación de flujo · on-die"),
+               "— · 23.4 °C", _t("fábrica"), _t("DERIVA"), UI_C_WARN_SOFT);
 
     lv_obj_t *acts = ui_box(ui_sensorDiagScreen);
     lv_obj_set_size(acts, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(acts, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(acts, 9, 0);
-    action_btn(acts, UI_SYM_REFRESH, "Recalibrar cero", UI_C_CARD_BG, 0x2c313a, 0xcfd3d9);
-    action_btn(acts, UI_SYM_FILE_EXPORT, "Exportar log de sensores", UI_C_OK_BG, UI_C_OK_BORDER, UI_C_OK_SOFT);
+    action_btn(acts, UI_SYM_REFRESH, _t("Recalibrar cero"), UI_C_CARD_BG, 0x2c313a, 0xcfd3d9);
+    action_btn(acts, UI_SYM_FILE_EXPORT, _t("Exportar log de sensores"), UI_C_OK_BG, UI_C_OK_BORDER, UI_C_OK_SOFT);
 }
 
 void ui_sensorDiagScreen_screen_destroy(void)

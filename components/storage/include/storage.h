@@ -37,6 +37,7 @@ extern "C"
             char datetime[32];  // ISO8601 o epoch string
             char timezone[32];  // "America/Bogota"
             char lang[3];       // "es" | "en"
+            int brightness;     // brillo de pantalla 10..100 (%)
 
             // Identidad fija del Hardware (Solo lectura desde el exterior)
             char model[16];
@@ -71,10 +72,13 @@ extern "C"
             char flow_unit[8];     // "lpm"|"slpm"|"nlpm"|"sccm"
             char gas_type[16];     // "o2"|"air_med"|...
             char color_code[8];    // "iso"|"nfpa"
+            float flow_fullscale_lpm; // fondo de escala del eje de flujo en main (L/min)
             struct
             {
                 float pressure_offset, pressure_scale;
                 float flow_offset, flow_scale;
+                char last_cal_date[16];     // "2026-03-12" (texto libre, lo fija SD/app)
+                char next_service_date[16]; // "2026-09-08"
             } cal;
             struct
             {

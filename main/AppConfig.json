@@ -7,6 +7,7 @@
     "partner": "Vexel_Partner",
     "client": "lab_medellin",
     "lang": "es",
+    "brightness": 80,
     "admin": {
       "user": "admin",
       "pass": "1234"
@@ -23,11 +24,14 @@
     "flow_unit": "lpm",
     "gas_type": "o2",
     "color_code": "iso",
+    "flow_fullscale_lpm": 100.0,
     "cal": {
       "pressure_offset": 0.0,
       "pressure_scale": 1.0,
       "flow_offset": 0.0,
-      "flow_scale": 1.0
+      "flow_scale": 1.0,
+      "last_cal_date": "",
+      "next_service_date": ""
     },
     "alarm_limits": {
       "pressure_min": 0.0,

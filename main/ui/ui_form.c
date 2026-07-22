@@ -1,4 +1,5 @@
 #include "ui_form.h"
+#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
 #include "ui_nav.h"
@@ -46,7 +47,7 @@ lv_obj_t *ui_form_begin(const char *title, lv_obj_t **out_content, lv_event_cb_t
     lv_obj_set_style_pad_ver(save, 6, 0);
     lv_obj_add_flag(save, LV_OBJ_FLAG_CLICKABLE);
     if (save_cb) lv_obj_add_event_cb(save, save_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_center(ui_label(save, "Guardar", UI_FONT_SM, 0x06251f));
+    lv_obj_center(ui_label(save, _t("Guardar"), UI_FONT_SM, 0x06251f));
 
     /* contenido con scroll vertical */
     lv_obj_t *content = ui_box(scr);

@@ -5,40 +5,51 @@
 /* En el dispositivo LV_COLOR_DEPTH=16 (ST7796/RGB565, fijado por sdkconfig).
  * El simulador de PC usa 32bpp; solo cambia la precisión de color, no el layout. */
 
-/* Getters perezosos: las pantallas secundarias se crean la 1ª vez que se abren. */
+/* Pantallas secundarias: se RECREAN al abrirlas hacia adelante (fresh).
+ * Es seguro: al abrir X, X nunca está en la pila de navegación (solo sus
+ * ancestros), así que destruir la instancia vieja no deja punteros colgando.
+ * Beneficios: datos de config siempre frescos y el cambio de idioma (_t)
+ * aplica al navegar, sin reiniciar. */
 static lv_obj_t *get_general(void)
 {
-    if (!ui_generalScreen) ui_generalScreen_screen_init();
+    if (ui_generalScreen) ui_generalScreen_screen_destroy();
+    ui_generalScreen_screen_init();
     return ui_generalScreen;
 }
 static lv_obj_t *get_info(void)
 {
-    if (!ui_infoScreen) ui_infoScreen_screen_init();
+    if (ui_infoScreen) ui_infoScreen_screen_destroy();
+    ui_infoScreen_screen_init();
     return ui_infoScreen;
 }
 static lv_obj_t *get_general_simple(void)
 {
-    if (!ui_generalSimpleScreen) ui_generalSimpleScreen_screen_init();
+    if (ui_generalSimpleScreen) ui_generalSimpleScreen_screen_destroy();
+    ui_generalSimpleScreen_screen_init();
     return ui_generalSimpleScreen;
 }
 static lv_obj_t *get_connectivity(void)
 {
-    if (!ui_connectivityScreen) ui_connectivityScreen_screen_init();
+    if (ui_connectivityScreen) ui_connectivityScreen_screen_destroy();
+    ui_connectivityScreen_screen_init();
     return ui_connectivityScreen;
 }
 static lv_obj_t *get_sensor_edit(void)
 {
-    if (!ui_sensorEditScreen) ui_sensorEditScreen_screen_init();
+    if (ui_sensorEditScreen) ui_sensorEditScreen_screen_destroy();
+    ui_sensorEditScreen_screen_init();
     return ui_sensorEditScreen;
 }
 static lv_obj_t *get_sensor_diag(void)
 {
-    if (!ui_sensorDiagScreen) ui_sensorDiagScreen_screen_init();
+    if (ui_sensorDiagScreen) ui_sensorDiagScreen_screen_destroy();
+    ui_sensorDiagScreen_screen_init();
     return ui_sensorDiagScreen;
 }
 static lv_obj_t *get_bleapp(void)
 {
-    if (!ui_bleAppScreen) ui_bleAppScreen_screen_init();
+    if (ui_bleAppScreen) ui_bleAppScreen_screen_destroy();
+    ui_bleAppScreen_screen_init();
     return ui_bleAppScreen;
 }
 /* Los diálogos (keypad/confirm/pin) se recrean cada vez: mantienen estado interno

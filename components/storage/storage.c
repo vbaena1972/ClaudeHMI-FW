@@ -45,6 +45,7 @@ void appcfg_defaults(AppConfig *c)
     set_str(c->general.datetime, sizeof(c->general.datetime), "");
     set_str(c->general.timezone, sizeof(c->general.timezone), "America/Bogota");
     set_str(c->general.lang, sizeof(c->general.lang), "es");
+    c->general.brightness = 80;
     // Identidad fija del Hardware (Solo lectura desde el exterior)
     set_str(c->general.model, sizeof(c->general.model), "FPM-200");
     set_str(c->general.serial, sizeof(c->general.serial), "fpm-0001");
@@ -69,10 +70,13 @@ void appcfg_defaults(AppConfig *c)
     set_str(c->sensors.flow_unit, sizeof(c->sensors.flow_unit), "lpm");
     set_str(c->sensors.gas_type, sizeof(c->sensors.gas_type), "o2");
     set_str(c->sensors.color_code, sizeof(c->sensors.color_code), "iso");
+    c->sensors.flow_fullscale_lpm = 100.f;
     c->sensors.cal.pressure_offset = 0.f;
     c->sensors.cal.pressure_scale = 1.f;
     c->sensors.cal.flow_offset = 0.f;
     c->sensors.cal.flow_scale = 1.f;
+    set_str(c->sensors.cal.last_cal_date, sizeof(c->sensors.cal.last_cal_date), "");
+    set_str(c->sensors.cal.next_service_date, sizeof(c->sensors.cal.next_service_date), "");
     c->sensors.alarm_limits.pressure_min = 350.f;
     c->sensors.alarm_limits.pressure_max = 1000.f;
     c->sensors.alarm_limits.flow_delta_threshold = 15.f;
@@ -145,6 +149,7 @@ cJSON *json_from_cfg(const AppConfig *c)
     cJSON_AddStringToObject(gen, "datetime", c->general.datetime);
     cJSON_AddStringToObject(gen, "timezone", c->general.timezone);
     cJSON_AddStringToObject(gen, "lang", c->general.lang);
+    cJSON_AddNumberToObject(gen, "brightness", c->general.brightness);
     // Identidad fija del Hardware (Solo lectura desde el exterior)
     cJSON_AddStringToObject(gen, "model", c->general.model);
     cJSON_AddStringToObject(gen, "serial", c->general.serial);
@@ -169,11 +174,14 @@ cJSON *json_from_cfg(const AppConfig *c)
     cJSON_AddStringToObject(sns, "flow_unit", c->sensors.flow_unit);
     cJSON_AddStringToObject(sns, "gas_type", c->sensors.gas_type);
     cJSON_AddStringToObject(sns, "color_code", c->sensors.color_code);
+    cJSON_AddNumberToObject(sns, "flow_fullscale_lpm", c->sensors.flow_fullscale_lpm);
     cJSON *cal = cJSON_AddObjectToObject(sns, "cal");
     cJSON_AddNumberToObject(cal, "pressure_offset", c->sensors.cal.pressure_offset);
     cJSON_AddNumberToObject(cal, "pressure_scale", c->sensors.cal.pressure_scale);
     cJSON_AddNumberToObject(cal, "flow_offset", c->sensors.cal.flow_offset);
     cJSON_AddNumberToObject(cal, "flow_scale", c->sensors.cal.flow_scale);
+    cJSON_AddStringToObject(cal, "last_cal_date", c->sensors.cal.last_cal_date);
+    cJSON_AddStringToObject(cal, "next_service_date", c->sensors.cal.next_service_date);
     cJSON *al2 = cJSON_AddObjectToObject(sns, "alarm_limits");
     cJSON_AddNumberToObject(al2, "pressure_min", c->sensors.alarm_limits.pressure_min);
     cJSON_AddNumberToObject(al2, "pressure_max", c->sensors.alarm_limits.pressure_max);
@@ -255,6 +263,9 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
         getstr(c->general.datetime, sizeof(c->general.datetime), general, "datetime");
         getstr(c->general.timezone, sizeof(c->general.timezone), general, "timezone");
         getstr(c->general.lang, sizeof(c->general.lang), general, "lang");
+        const cJSON *br = cJSON_GetObjectItemCaseSensitive(general, "brightness");
+        if (cJSON_IsNumber(br))
+            c->general.brightness = br->valueint;
         getstr(c->general.partner, sizeof(c->general.partner), general, "partner");
         getstr(c->general.client, sizeof(c->general.client), general, "client");
 
@@ -293,6 +304,9 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
         getstr(c->sensors.flow_unit, sizeof(c->sensors.flow_unit), sensors, "flow_unit");
         getstr(c->sensors.gas_type, sizeof(c->sensors.gas_type), sensors, "gas_type");
         getstr(c->sensors.color_code, sizeof(c->sensors.color_code), sensors, "color_code");
+        const cJSON *ffs = cJSON_GetObjectItemCaseSensitive(sensors, "flow_fullscale_lpm");
+        if (cJSON_IsNumber(ffs))
+            c->sensors.flow_fullscale_lpm = ffs->valuedouble;
 
         cJSON *cal = cJSON_GetObjectItemCaseSensitive(sensors, "cal");
         if (cal)
@@ -310,6 +324,8 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
                 c->sensors.cal.flow_offset = fo->valuedouble;
             if (cJSON_IsNumber(fs))
                 c->sensors.cal.flow_scale = fs->valuedouble;
+            getstr(c->sensors.cal.last_cal_date, sizeof(c->sensors.cal.last_cal_date), cal, "last_cal_date");
+            getstr(c->sensors.cal.next_service_date, sizeof(c->sensors.cal.next_service_date), cal, "next_service_date");
         }
 
         cJSON *limits = cJSON_GetObjectItemCaseSensitive(sensors, "alarm_limits");
@@ -541,6 +557,12 @@ esp_err_t appcfg_migrate(AppConfig *io)
         // ... ajustes si venías de 0 (no lo usamos)
         io->ver = 1;
     }
+    // Saneo de campos nuevos: configs viejas en NVS no traen "brightness"
+    if (io->general.brightness < 10 || io->general.brightness > 100)
+        io->general.brightness = 80;
+    // ... ni "flow_fullscale_lpm"
+    if (!(io->sensors.flow_fullscale_lpm > 0.f) || io->sensors.flow_fullscale_lpm > 10000.f)
+        io->sensors.flow_fullscale_lpm = 100.f;
     return ESP_OK;
 }
 
