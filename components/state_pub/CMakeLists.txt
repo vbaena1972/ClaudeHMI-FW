@@ -1,0 +1,1 @@
+idf_component_register(SRCS "state_pub.c" INCLUDE_DIRS "include" REQUIRES esp_timer)

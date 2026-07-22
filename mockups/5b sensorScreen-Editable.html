@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5b · sensorScreen-Editable</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  html,body{margin:0;height:100%}
+  body{background:#0c0c0e;display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div style="background:#202227;border-radius:24px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.55)">
+       <div style="background:#0f1115;border-radius:18px;padding:7px;border:1px solid rgba(255,255,255,.06)">
+        <div style="width:480px;height:320px;background:#15181e;border-radius:12px;overflow:hidden;color:#eef0f3;display:flex;flex-direction:column;padding:9px 12px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;color:#cfd3d9"><i class="ti ti-arrow-left" style="font-size:16px"></i></span><span style="font-size:15px;font-weight:600;letter-spacing:.3px">Sensores y alarmas</span></div>
+            <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:#9fe1cb;background:#12261f;border:1px solid #1f7d5c;padding:3px 9px;border-radius:7px"><i class="ti ti-lock-open" style="font-size:12px"></i>desbloqueado</span>
+          </div>
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:0 12px"><div style="flex:1"><div style="font-size:9px;color:#6f767f;letter-spacing:.6px">TIPO DE GAS</div><div style="font-size:14px;font-weight:600;color:#34d399">Oxígeno · O₂</div></div><i class="ti ti-chevron-down" style="font-size:16px;color:#8b929c"></i></div>
+            <div style="display:flex;align-items:center;gap:10px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:0 12px"><div style="flex:1"><div style="font-size:9px;color:#6f767f;letter-spacing:.6px">CÓDIGO DE COLOR</div><div style="font-size:14px;font-weight:600">NFPA · verde/blanco</div></div><span style="display:flex;gap:3px"><span style="width:11px;height:16px;border-radius:2px;background:#34d399"></span><span style="width:11px;height:16px;border-radius:2px;background:#e6e8eb"></span></span></div>
+            <div style="background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:6px 12px"><div style="font-size:9px;color:#6f767f;letter-spacing:.6px;margin-bottom:5px">UNIDAD DE PRESIÓN</div><div style="display:flex;gap:4px">
+              <span style="flex:1;text-align:center;font-size:11px;font-weight:600;color:#06251f;background:#34d399;border-radius:6px;padding:5px 0">PSI</span>
+              <span style="flex:1;text-align:center;font-size:11px;color:#9aa1ab;padding:5px 0">BAR</span>
+              <span style="flex:1;text-align:center;font-size:11px;color:#9aa1ab;padding:5px 0">kPa</span>
+              <span style="flex:1;text-align:center;font-size:11px;color:#9aa1ab;padding:5px 0">MPa</span></div></div>
+            <div style="background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:6px 12px"><div style="font-size:9px;color:#6f767f;letter-spacing:.6px;margin-bottom:5px">UNIDAD DE FLUJO</div><div style="display:flex;gap:4px">
+              <span style="flex:1;text-align:center;font-size:11px;color:#9aa1ab;padding:5px 0">LPM</span>
+              <span style="flex:1;text-align:center;font-size:11px;font-weight:600;color:#06251f;background:#34d399;border-radius:6px;padding:5px 0">SCCM</span>
+              <span style="flex:1;text-align:center;font-size:11px;color:#9aa1ab;padding:5px 0">m³/h</span></div></div>
+            <div style="grid-column:1 / -1;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:7px 12px">
+              <div style="font-size:9px;color:#6f767f;letter-spacing:.6px;margin-bottom:6px">UMBRALES DE ALARMA · PRESIÓN (toca para editar)</div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:#12181f;border:1px solid rgba(248,113,113,.35);border-radius:8px;padding:6px 12px"><span style="font-size:11px;color:#f6a5a5">Mínimo</span><span style="font-size:17px;font-weight:600;color:#f87171">500 <span style="font-size:10px;color:#9aa1ab">psi</span></span></div>
+                <div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:#12181f;border:1px solid rgba(248,113,113,.35);border-radius:8px;padding:6px 12px"><span style="font-size:11px;color:#f6a5a5">Máximo</span><span style="font-size:17px;font-weight:600;color:#f87171">2000 <span style="font-size:10px;color:#9aa1ab">psi</span></span></div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:#6f767f;text-align:center;margin-top:7px;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-device-mobile-message"></i>SSID, contraseñas y certificados AWS se configuran desde la app por BLE</div>
+        </div>
+       </div>
+      </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "rtc_rv3028.c"
+        "alarm_mgr.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        freertos 
+        esp_driver_i2c
+    PRIV_REQUIRES 
+        esp_driver_ledc
+        esp_timer
+        storage
+)

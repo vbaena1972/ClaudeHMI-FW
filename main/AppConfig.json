@@ -1,0 +1,89 @@
+{
+  "ver": 1,
+  "general": {
+    "info_text": "axira equipos electronicos",
+    "datetime": "ISO8601 or epoch",
+    "timezone": "America/Bogota",
+    "partner": "Vexel_Partner",
+    "client": "lab_medellin",
+    "lang": "es",
+    "admin": {
+      "user": "admin",
+      "pass": "1234"
+    },
+    "alarm": {
+      "tone_warn": true,
+      "tone_alert": true,
+      "warn_timeout_s": 5,
+      "alert_timeout_s": 10
+    }
+  },
+  "sensors": {
+    "pressure_unit": "kpa",
+    "flow_unit": "lpm",
+    "gas_type": "o2",
+    "color_code": "iso",
+    "cal": {
+      "pressure_offset": 0.0,
+      "pressure_scale": 1.0,
+      "flow_offset": 0.0,
+      "flow_scale": 1.0
+    },
+    "alarm_limits": {
+      "pressure_min": 0.0,
+      "pressure_max": 550.0,
+      "flow_delta_threshold": 10.0,
+      "flow_delta_window_ms": 300
+    }
+  },
+  "wifi": {
+    "enabled": true,
+    "ssid": "MiSSID",
+    "password": "secret",
+    "ip_mode": "dhcp",
+    "ip": "",
+    "mask": "",
+    "gw": "",
+    "dns1": "",
+    "dns2": ""
+  },
+  "eth": {
+    "enabled": false,
+    "ip_mode": "dhcp",
+    "ip": "",
+    "mask": "",
+    "gw": "",
+    "dns1": "",
+    "dns2": "",
+    "hostname": "AX-0001-Eth"
+  },
+  "bt": {
+    "enabled": false,
+    "advertise": true,
+    "tx_power": 7,
+    "mesh": {
+      "enabled": false,
+      "provisioned": false,
+      "dev_uuid": "",
+      "net_key": "",
+      "app_key": "",
+      "unicast_addr": 0,
+      "ttl": 5,
+      "relay": false
+    },
+    "legacy": {
+      "name": "AXIRA",
+      "pin": "0000",
+      "sec_mode": 1
+    }
+  },
+  "cloud": {
+    "enabled": false,
+    "type": "mqtt",
+    "broker_url": "mqtts://a13o0atpzl606i-ats.iot.us-east-1.amazonaws.com:8883",
+    "topic_base": "vexel",
+    "qos": 1,
+    "keepalive": 60,
+    "ota_url": ""
+  }
+}

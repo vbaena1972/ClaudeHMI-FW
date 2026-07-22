@@ -1,0 +1,23 @@
+{
+  "idf.currentSetup": "C:\\Espressif\\v6.0.1\\esp-idf",
+  "idf.espIdfPath": "C:\\Espressif\\v6.0.1\\esp-idf",
+  "idf.toolsPath": "C:\\Espressif",
+  "idf.customExtraPaths": "C:\\Espressif\\tools\\xtensa-esp-elf\\esp-15.2.0_20251204\\xtensa-esp-elf\\bin;C:\\Espressif\\tools\\riscv32-esp-elf\\esp-15.2.0_20251204\\riscv32-esp-elf\\bin;C:\\Espressif\\tools\\cmake\\4.0.3\\bin;C:\\Espressif\\tools\\ninja\\1.12.1;C:\\Espressif\\tools\\ccache\\4.12.1\\ccache-4.12.1-windows-x86_64",
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "C:\\Espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20260304\\openocd-esp32\\share\\openocd\\scripts",
+    "IDF_CCACHE_ENABLE": "1"
+  },
+  "idf.gitPath": "C:\\Program Files\\Git\\cmd\\git.exe",
+  "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-20.1.1_20250829\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=d:\\SoftwareDevelop\\Embedded\\FlowPressureMonitor\\FW\\build"
+  ],
+  "cmake.configureEnvironment": {
+    "IDF_PATH": "C:\\Espressif\\v6.0.1\\esp-idf"
+  },
+  "cmake.environment": {
+    "IDF_PATH": "C:\\Espressif\\v6.0.1\\esp-idf"
+  }
+}

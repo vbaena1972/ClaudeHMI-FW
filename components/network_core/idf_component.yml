@@ -1,0 +1,9 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: '>=5.4'
+  espressif/mqtt: ^1.0.0
+  espressif/ksz8851snl: "^1.0.0"
+  espressif/cjson: ^1.0.0
+

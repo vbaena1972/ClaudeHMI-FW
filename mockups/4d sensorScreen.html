@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4d · sensorScreen</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  html,body{margin:0;height:100%}
+  body{background:#0c0c0e;display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div style="background:#202227;border-radius:24px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.55)">
+       <div style="background:#0f1115;border-radius:18px;padding:7px;border:1px solid rgba(255,255,255,.06)">
+        <div style="width:480px;height:320px;background:#15181e;border-radius:12px;overflow:hidden;color:#eef0f3;display:flex;flex-direction:column;padding:8px 12px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;color:#cfd3d9"><i class="ti ti-arrow-left" style="font-size:16px"></i></span><span style="font-size:15px;font-weight:600;letter-spacing:.3px">Sensores</span></div>
+            <span style="font-size:10px;color:#5aa886;background:#12261f;border:1px solid #1f7d5c;padding:3px 9px;border-radius:7px">3 activos · 0 fallas</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+            <!-- row: pressure -->
+            <div style="flex:1;display:flex;align-items:center;gap:12px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:0 14px">
+              <span style="width:34px;height:34px;border-radius:9px;background:rgba(52,211,153,.14);display:flex;align-items:center;justify-content:center;color:#34d399;flex:0 0 34px"><i class="ti ti-gauge" style="font-size:19px"></i></span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Presión · P-01</div><div style="font-size:9.5px;color:#6f767f">transductor 0–2200 psi · I²C 0x28</div></div>
+              <div style="text-align:right;margin-right:6px"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">CRUDO</div><div style="font-size:12px;color:#cfd3d9">3.412 V · 1400 psi</div></div>
+              <div style="text-align:right;margin-right:6px"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">CAL.</div><div style="font-size:12px;color:#cfd3d9">12 mar 2026</div></div>
+              <span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#34d399;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);padding:4px 10px;border-radius:7px"><span style="width:6px;height:6px;border-radius:50%;background:#34d399"></span>OK</span>
+            </div>
+            <!-- row: flow -->
+            <div style="flex:1;display:flex;align-items:center;gap:12px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:0 14px">
+              <span style="width:34px;height:34px;border-radius:9px;background:rgba(52,211,153,.14);display:flex;align-items:center;justify-content:center;color:#34d399;flex:0 0 34px"><i class="ti ti-wind" style="font-size:19px"></i></span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Flujo · F-01</div><div style="font-size:9.5px;color:#6f767f">másico térmico 0–1500 SCCM · UART</div></div>
+              <div style="text-align:right;margin-right:6px"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">CRUDO</div><div style="font-size:12px;color:#cfd3d9">2.870 V · 889 SCCM</div></div>
+              <div style="text-align:right;margin-right:6px"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">CAL.</div><div style="font-size:12px;color:#cfd3d9">12 mar 2026</div></div>
+              <span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#34d399;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);padding:4px 10px;border-radius:7px"><span style="width:6px;height:6px;border-radius:50%;background:#34d399"></span>OK</span>
+            </div>
+            <!-- row: temp -->
+            <div style="flex:1;display:flex;align-items:center;gap:12px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:0 14px">
+              <span style="width:34px;height:34px;border-radius:9px;background:rgba(245,217,138,.12);display:flex;align-items:center;justify-content:center;color:#f5d98a;flex:0 0 34px"><i class="ti ti-temperature" style="font-size:19px"></i></span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Temp. de línea · T-01</div><div style="font-size:9.5px;color:#6f767f">compensación de flujo · on-die</div></div>
+              <div style="text-align:right;margin-right:6px"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">CRUDO</div><div style="font-size:12px;color:#cfd3d9">— · 23.4 °C</div></div>
+              <div style="text-align:right;margin-right:6px"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">CAL.</div><div style="font-size:12px;color:#cfd3d9">fábrica</div></div>
+              <span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#f5d98a;background:rgba(245,217,138,.1);border:1px solid rgba(245,217,138,.3);padding:4px 10px;border-radius:7px"><span style="width:6px;height:6px;border-radius:50%;background:#f5d98a"></span>DERIVA</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:8px">
+            <span style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;font-weight:600;color:#cfd3d9;background:#191c22;border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:7px"><i class="ti ti-refresh"></i>Recalibrar cero</span>
+            <span style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;font-weight:600;color:#9fe1cb;background:#12261f;border:1px solid #1f7d5c;border-radius:9px;padding:7px"><i class="ti ti-file-export"></i>Exportar log de sensores</span>
+          </div>
+        </div>
+       </div>
+      </div>
+</body>
+</html>

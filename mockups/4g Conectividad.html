@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4g · Conectividad</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  html,body{margin:0;height:100%}
+  body{background:#0c0c0e;display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div style="background:#202227;border-radius:24px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.55)">
+       <div style="background:#0f1115;border-radius:18px;padding:7px;border:1px solid rgba(255,255,255,.06)">
+        <div style="width:480px;height:320px;background:#15181e;border-radius:12px;overflow:hidden;color:#eef0f3;display:flex;flex-direction:column;padding:8px 12px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;color:#cfd3d9"><i class="ti ti-arrow-left" style="font-size:16px"></i></span><span style="font-size:15px;font-weight:600;letter-spacing:.3px">Conectividad</span></div>
+            <span style="font-size:10px;color:#5aa886;background:#12261f;border:1px solid #1f7d5c;padding:3px 9px;border-radius:7px">telemetría activa</span>
+          </div>
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:#191c22;border:1px solid rgba(52,211,153,.28);border-radius:11px;padding:10px 13px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-wifi" style="font-size:19px;color:#34d399"></i><span style="font-size:13px;font-weight:600">Wi-Fi</span></div><span style="font-size:10px;font-weight:600;color:#34d399">Conectado</span></div>
+              <div style="font-size:11px;color:#cfd3d9;margin-top:7px">Hospital-BIOMED-5G</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:auto"><div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden"><div style="width:82%;height:100%;background:#34d399"></div></div><span style="font-size:9.5px;color:#6f767f">-52 dBm</span></div>
+              <div style="font-size:9px;color:#6f767f;margin-top:5px">IP 10.4.12.87 · DHCP</div>
+            </div>
+            <div style="background:#191c22;border:1px solid rgba(45,212,191,.28);border-radius:11px;padding:10px 13px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-cloud-check" style="font-size:19px;color:#2dd4bf"></i><span style="font-size:13px;font-weight:600">Nube · MQTT</span></div><span style="font-size:10px;font-weight:600;color:#2dd4bf">Sincronizado</span></div>
+              <div style="font-size:11px;color:#cfd3d9;margin-top:7px">broker.axira.io:8883 · TLS</div>
+              <div style="font-size:9px;color:#6f767f;margin-top:auto">Última sync hace 8 s · QoS 1</div>
+              <div style="font-size:9px;color:#6f767f;margin-top:4px">Buffer local 0 registros</div>
+            </div>
+            <div style="background:#191c22;border:1px solid rgba(90,160,224,.28);border-radius:11px;padding:10px 13px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-bluetooth" style="font-size:19px;color:#5aa0e0"></i><span style="font-size:13px;font-weight:600">Bluetooth LE</span></div><span style="font-size:10px;font-weight:600;color:#5aa0e0">Anunciando</span></div>
+              <div style="font-size:11px;color:#cfd3d9;margin-top:7px">Visible para app de servicio</div>
+              <div style="font-size:9px;color:#6f767f;margin-top:auto">Sin dispositivo emparejado</div>
+              <div style="font-size:9px;color:#6f767f;margin-top:4px">MAC C8:2B:…:9F</div>
+            </div>
+            <div style="background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:10px 13px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-network" style="font-size:19px;color:#6f767f"></i><span style="font-size:13px;font-weight:600">Ethernet</span></div><span style="font-size:10px;font-weight:600;color:#6f767f">Sin cable</span></div>
+              <div style="font-size:11px;color:#8b929c;margin-top:7px">Respaldo cableado (failover)</div>
+              <div style="font-size:9px;color:#6f767f;margin-top:auto">RJ45 · 100 Mbps</div>
+              <div style="font-size:9px;color:#6f767f;margin-top:4px">Inactivo</div>
+            </div>
+          </div>
+        </div>
+       </div>
+      </div>
+</body>
+</html>

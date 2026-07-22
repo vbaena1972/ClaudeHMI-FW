@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5e · generalScreen-Simple</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  html,body{margin:0;height:100%}
+  body{background:#0c0c0e;display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div style="background:#202227;border-radius:24px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.55)">
+       <div style="background:#0f1115;border-radius:18px;padding:7px;border:1px solid rgba(255,255,255,.06)">
+        <div style="width:480px;height:320px;background:#15181e;border-radius:12px;overflow:hidden;color:#eef0f3;display:flex;flex-direction:column;padding:9px 12px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;border-radius:7px;border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;color:#cfd3d9"><i class="ti ti-arrow-left" style="font-size:16px"></i></span><span style="font-size:15px;font-weight:600;letter-spacing:.3px">Ajustes generales</span></div>
+            <span style="font-size:10px;color:#8b929c">local · sin red</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div style="flex:1;display:flex;align-items:center;gap:12px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:0 14px"><span style="width:32px;height:32px;border-radius:8px;background:rgba(52,211,153,.12);display:flex;align-items:center;justify-content:center;color:#34d399;flex:0 0 32px"><i class="ti ti-language" style="font-size:18px"></i></span><div style="flex:1"><div style="font-size:13px;font-weight:600">Idioma</div><div style="font-size:9.5px;color:#6f767f">idioma de la interfaz</div></div><span style="font-size:12px;color:#e6e8eb">Español</span><i class="ti ti-chevron-right" style="font-size:16px;color:#6f767f"></i></div>
+            <div style="flex:1;display:flex;align-items:center;gap:12px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:0 14px"><span style="width:32px;height:32px;border-radius:8px;background:rgba(245,217,138,.12);display:flex;align-items:center;justify-content:center;color:#f5d98a;flex:0 0 32px"><i class="ti ti-clock" style="font-size:18px"></i></span><div style="flex:1"><div style="font-size:13px;font-weight:600">Zona horaria</div><div style="font-size:9.5px;color:#6f767f">RTC RV-3028 · hora local de eventos</div></div><span style="font-size:12px;color:#e6e8eb">GMT-5 Bogotá</span><i class="ti ti-chevron-right" style="font-size:16px;color:#6f767f"></i></div>
+            <div style="flex:1;display:flex;align-items:center;gap:12px;background:#191c22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:0 14px"><span style="width:32px;height:32px;border-radius:8px;background:rgba(90,160,224,.12);display:flex;align-items:center;justify-content:center;color:#5aa0e0;flex:0 0 32px"><i class="ti ti-brightness-up" style="font-size:18px"></i></span><div style="flex:1"><div style="font-size:13px;font-weight:600">Brillo</div><div style="font-size:9.5px;color:#6f767f">reposo al 50% tras inactividad</div></div><div style="width:96px;height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden"><div style="width:80%;height:100%;background:#5aa0e0"></div></div><span style="font-size:11px;color:#9aa1ab">80%</span></div>
+          </div>
+          <div style="font-size:9px;color:#6f767f;text-align:center;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-device-mobile-message"></i>Red, nube y nombre del equipo se gestionan desde la app por BLE</div>
+        </div>
+       </div>
+      </div>
+</body>
+</html>

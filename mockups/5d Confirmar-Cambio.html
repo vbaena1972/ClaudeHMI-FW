@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5d · Confirmar-Cambio</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  html,body{margin:0;height:100%}
+  body{background:#0c0c0e;display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div style="background:#202227;border-radius:24px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.55)">
+       <div style="background:#0f1115;border-radius:18px;padding:7px;border:1px solid rgba(255,255,255,.06)">
+        <div style="width:480px;height:320px;background:#15181e;border-radius:12px;overflow:hidden;color:#eef0f3;position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box">
+          <div style="position:absolute;inset:0;background:rgba(8,9,11,.62);backdrop-filter:blur(1px)"></div>
+          <div style="position:relative;width:340px;background:#1b1e24;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 18px;box-shadow:0 20px 50px rgba(0,0,0,.5)">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:32px;height:32px;border-radius:9px;background:rgba(245,217,138,.14);display:flex;align-items:center;justify-content:center;color:#f5d98a"><i class="ti ti-alert-triangle" style="font-size:18px"></i></span><div style="font-size:15px;font-weight:600">Confirmar cambio crítico</div></div>
+            <div style="font-size:11px;color:#8b929c;margin-top:9px">Vas a modificar un umbral de alarma de seguridad. Se enviará al MCU de control y se registrará con fecha y hora.</div>
+            <div style="display:flex;align-items:center;gap:10px;background:#12181f;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 13px;margin-top:12px">
+              <div style="flex:1"><div style="font-size:9px;color:#6f767f;letter-spacing:.5px">PRESIÓN · MÁXIMO</div><div style="font-size:12px;color:#9aa1ab;margin-top:2px">antes</div></div>
+              <span style="font-size:18px;font-weight:600;color:#9aa1ab">2000</span>
+              <i class="ti ti-arrow-right" style="font-size:16px;color:#6f767f"></i>
+              <span style="font-size:18px;font-weight:700;color:#34d399">2100</span>
+              <span style="font-size:11px;color:#9aa1ab">psi</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <span style="flex:1;text-align:center;font-size:12px;font-weight:600;color:#cfd3d9;background:#191c22;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:10px 0">Cancelar</span>
+              <span style="flex:1.4;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:700;color:#06251f;background:#34d399;border-radius:9px;padding:10px 0"><i class="ti ti-shield-check" style="font-size:15px"></i>Confirmar con PIN</span>
+            </div>
+          </div>
+        </div>
+       </div>
+      </div>
+</body>
+</html>

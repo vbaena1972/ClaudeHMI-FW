@@ -1,0 +1,31 @@
+idf_component_register(
+    SRCS 
+        "eth_mgr.c" 
+        "ethernet_init.c" 
+        "net_core.c" 
+        "transport_mqtt.c" 
+        "wifi_mgr.c"
+        "time_mgr.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES
+        esp_eth
+        esp_netif
+        esp_event
+        esp_wifi
+        lwip
+        espressif__ksz8851snl 
+        storage
+        drivers
+    PRIV_REQUIRES
+        state_pub
+        cert_store
+        ui_bind
+        diag
+        transport_http
+        transport_ble
+        esp_driver_gpio
+        mqtt
+        cjson
+        sensors_runtime
+)

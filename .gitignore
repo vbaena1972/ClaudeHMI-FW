@@ -1,0 +1,26 @@
+# ===== ESP-IDF build =====
+/build/
+/build_*/
+sdkconfig.old
+
+# Componentes gestionados: se re-descargan del registry con `idf.py reconfigure`
+# (las versiones quedan fijadas en dependencies.lock)
+/managed_components/
+
+# ===== Logs y trazas =====
+/logs/
+*.svdat
+*.log
+
+# ===== Backup del HMI anterior (grande, no necesario en el repo) =====
+/hmi_squareline_backup.tar.gz
+/hmi_squareline_backup.zip
+
+# ===== Editor / SO =====
+.vscode/ipch/
+*.tmp
+Thumbs.db
+.DS_Store
+
+# Nota: sdkconfig SÍ se versiona (contiene ajustes del proyecto).
+# sdkconfig.defaults es la fuente de verdad y también se versiona.

@@ -1,0 +1,90 @@
+{
+  "ver": 1,
+  "general": {
+    "info_text": "axira equipos electronicos",
+    "datetime": "ISO8601 or epoch",
+    "timezone": "America/Bogota",
+    "lang": "es", // "en" | "es"
+    "admin": {
+      "user": "admin",
+      "pass": "1234"
+    },
+    "alarm": {
+      "tone_warn": true,
+      "tone_alert": true,
+      "warn_timeout_s": 5,
+      "alert_timeout_s": 10
+    },
+    "fw": {
+      "version": "1.0.0",
+      "serial": "AX-0001"
+    }
+  },
+  "sensors": {
+    "pressure_unit": "kpa", // "bar"|"kpa"|"psi"
+    "flow_unit": "lpm", // "lpm"|"slpm"|"nlpm"|"sccm" (elige las que uses)
+    "gas_type": "o2", // "o2"|"air_med"|"vacuum"|"n2"|"n2o"|"co2"|"wagd"|"agss"|"air_inst"
+    "color_code": "iso", // "iso"|"nfpa"
+    "cal": { // calibration
+      "pressure_offset": 0.0,
+      "pressure_scale": 1.0,
+      "flow_offset": 0.0,
+      "flow_scale": 1.0
+    },
+    "alarm_limits": {
+      "pressure_min": 0.0,
+      "pressure_max": 550.0, // kPa por ejemplo
+      "flow_delta_threshold": 10.0, // L/min salto brusco
+      "flow_delta_window_ms": 300 // ventana para detectar fallo
+    }
+  },
+  "wifi": {
+    "enabled": true,
+    "ssid": "MiSSID",
+    "password": "secret",
+    "ip_mode": "dhcp", // "dhcp"|"static"
+    "ip": "",
+    "mask": "",
+    "gw": "",
+    "dns1": "",
+    "dns2": ""
+  },
+  "eth": {
+    "enabled": false,
+    "ip_mode": "dhcp",
+    "ip": "",
+    "mask": "",
+    "gw": "",
+    "dns1": "",
+    "dns2": ""
+  },
+  "bt": {
+    "enabled": false,
+    "mesh": {
+      "provisioned": false,
+      "dev_uuid": "", // 16 bytes hex
+      "net_key": "",
+      "app_key": "",
+      "unicast_addr": 0,
+      "ttl": 5,
+      "relay": false
+    },
+    "legacy": {
+      "name": "AXIRA",
+      "pin": "0000"
+    } // si usas BT Classic
+  },
+  "cloud": {
+    "enabled": false,
+    "type": "mqtt", // "mqtt"|"http"
+    "broker_url": "mqtts://host:8883",
+    "client_id": "AX-0001",
+    "username": "",
+    "password": "",
+    //"tls": { "server_ca_pem": "", "client_cert_pem": "", "client_key_pem": "" },
+    "topic_base": "axira/dev/AX-0001",
+    "qos": 1,
+    "keepalive": 30,
+    "ota_url": ""
+  }
+}
