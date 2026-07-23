@@ -10,6 +10,15 @@
 
 lv_obj_t *ui_confirmScreen = NULL;
 
+static void apply_authenticated_cb(lv_event_t *e)
+{
+    (void)e;
+    if (!ui_auth_active()) { ui_open_login_cb(NULL); return; }
+    bool audio = ui_edit_is_audio();
+    ui_edit_apply();
+    ui_nav_pop_to(audio ? ui_sensorDiagScreen : ui_sensorEditScreen);
+}
+
 void ui_confirmScreen_screen_init(void)
 {
     ui_confirmScreen = ui_screen_base();
@@ -97,9 +106,9 @@ void ui_confirmScreen_screen_init(void)
     lv_obj_set_flex_align(ok, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(ok, 7, 0);
     lv_obj_add_flag(ok, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(ok, ui_open_pin_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ok, apply_authenticated_cb, LV_EVENT_CLICKED, NULL);
     ui_icon(ok, UI_SYM_SHIELD_CHECK, UI_ICON_SM, 0x06251f);
-    ui_label(ok, _t("Confirmar con PIN"), UI_FONT_MD, 0x06251f);
+    ui_label(ok, _t("Aplicar cambio"), UI_FONT_MD, 0x06251f);
 }
 
 void ui_confirmScreen_screen_destroy(void)

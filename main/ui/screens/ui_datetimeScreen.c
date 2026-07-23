@@ -1,0 +1,10 @@
+#include "ui_datetimeScreen.h"
+#include "ui_widgets.h"
+#include "ui_theme.h"
+#include "ui_cfg.h"
+#include "ui_i18n.h"
+lv_obj_t *ui_datetimeScreen=NULL;static lv_obj_t*s_tz;
+static void next(lv_event_t*e){(void)e;int n=(ui_cfg_tz_index()+1)%ui_cfg_tz_count();ui_cfg_set_tz_index(n);lv_label_set_text(s_tz,ui_cfg_tz_label(n));}
+static lv_obj_t*row(lv_obj_t*p,const char*i,const char*t,const char*s){lv_obj_t*r=ui_card(p);lv_obj_set_width(r,LV_PCT(100));lv_obj_set_flex_grow(r,1);lv_obj_set_flex_flow(r,LV_FLEX_FLOW_ROW);lv_obj_set_flex_align(r,LV_FLEX_ALIGN_START,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);lv_obj_set_style_pad_hor(r,14,0);lv_obj_set_style_pad_column(r,10,0);ui_icon(r,i,UI_ICON_MD,UI_C_WARN_SOFT);lv_obj_t*c=ui_box(r);lv_obj_set_flex_grow(c,1);lv_obj_set_height(c,LV_SIZE_CONTENT);lv_obj_set_flex_flow(c,LV_FLEX_FLOW_COLUMN);ui_label(c,t,UI_FONT_LG,UI_C_TEXT);ui_label(c,s,UI_FONT_XS,UI_C_TEXT_MUTED);return r;}
+void ui_datetimeScreen_screen_init(void){ui_datetimeScreen=ui_screen_base();lv_obj_set_flex_flow(ui_datetimeScreen,LV_FLEX_FLOW_COLUMN);lv_obj_set_style_pad_all(ui_datetimeScreen,8,0);lv_obj_set_style_pad_row(ui_datetimeScreen,8,0);ui_nav_header(ui_datetimeScreen,_t("Fecha y hora"));lv_obj_t*z=row(ui_datetimeScreen,UI_SYM_CLOCK,_t("Zona horaria"),_t("Toque para cambiar"));s_tz=ui_label(z,ui_cfg_tz_label(ui_cfg_tz_index()),UI_FONT_MD,UI_C_TEXT);ui_icon(z,UI_SYM_CHEVRON_RIGHT,UI_ICON_SM,UI_C_TEXT_MUTED);lv_obj_add_flag(z,LV_OBJ_FLAG_CLICKABLE);lv_obj_add_event_cb(z,next,LV_EVENT_CLICKED,NULL);lv_obj_t*n=row(ui_datetimeScreen,UI_SYM_CLOUD_CHECK,_t("Sincronizacion automatica"),_t("RTC local y NTP al conectarse"));ui_pill(n,"RTC + NTP",UI_FONT_XS,UI_C_OK,UI_C_OK_BG,UI_C_OK_BORDER);lv_obj_t*f=ui_box(ui_datetimeScreen);lv_obj_set_size(f,LV_PCT(100),24);lv_obj_set_flex_align(f,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);ui_label(f,_t("Los ajustes avanzados se gestionan desde la app"),UI_FONT_XS,UI_C_TEXT_MUTED);}
+void ui_datetimeScreen_screen_destroy(void){if(ui_datetimeScreen){lv_obj_del(ui_datetimeScreen);ui_datetimeScreen=NULL;s_tz=NULL;}}

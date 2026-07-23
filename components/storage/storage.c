@@ -46,12 +46,14 @@ void appcfg_defaults(AppConfig *c)
     set_str(c->general.timezone, sizeof(c->general.timezone), "America/Bogota");
     set_str(c->general.lang, sizeof(c->general.lang), "es");
     c->general.brightness = 80;
+    set_str(c->general.theme, sizeof(c->general.theme), "dark" );
+    c->general.dim_minutes = 5;
     // Identidad fija del Hardware (Solo lectura desde el exterior)
     set_str(c->general.model, sizeof(c->general.model), "FPM-200");
     set_str(c->general.serial, sizeof(c->general.serial), "fpm-0001");
     set_str(c->general.hw_version, sizeof(c->general.hw_version), "1.1");
 
-    // Versión del Software (Fijada por compilación)
+    // VersiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n del Software (Fijada por compilaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n)
     set_str(c->general.fw_version, sizeof(c->general.fw_version), "1.0.0");
 
     // Datos de despliegue comercial (Modificables por SD)
@@ -62,8 +64,23 @@ void appcfg_defaults(AppConfig *c)
     c->general.alarm.tone_alert = true;
     c->general.alarm.warn_timeout_s = 5;
     c->general.alarm.alert_timeout_s = 10;
+    c->general.alarm.volume = 80;
+    c->general.alarm.reannounce_minutes = 15;
+    c->general.alarm.max_silence_minutes = 2;
     set_str(c->general.admin.user, sizeof(c->general.admin.user), "admin");
     set_str(c->general.admin.pass, sizeof(c->general.admin.pass), "1234");
+    c->general.users_count = 1;
+    set_str(c->general.users[0].name, sizeof(c->general.users[0].name), "Administrador");
+    set_str(c->general.users[0].pin, sizeof(c->general.users[0].pin), "1234");
+    c->general.users[0].role = APP_ROLE_ADMIN;
+    c->general.users[0].must_change_pin = true;
+    set_str(c->general.users[0].last, sizeof(c->general.users[0].last), "nunca");
+    set_str(c->general.factory.name, sizeof(c->general.factory.name), "Fabricante");
+    set_str(c->general.factory.pin, sizeof(c->general.factory.pin), "axira-2026");
+    c->general.factory.role = APP_ROLE_FACTORY;
+    c->general.factory.locked = true;
+    c->general.factory.must_change_pin = true;
+    set_str(c->general.factory.last, sizeof(c->general.factory.last), "nunca");
 
     // sensors
     set_str(c->sensors.pressure_unit, sizeof(c->sensors.pressure_unit), "psi");
@@ -77,9 +94,14 @@ void appcfg_defaults(AppConfig *c)
     c->sensors.cal.flow_scale = 1.f;
     set_str(c->sensors.cal.last_cal_date, sizeof(c->sensors.cal.last_cal_date), "");
     set_str(c->sensors.cal.next_service_date, sizeof(c->sensors.cal.next_service_date), "");
+    c->sensors.alarm_limits.pressure_min_enabled = true;
+    c->sensors.alarm_limits.pressure_max_enabled = true;
+    c->sensors.alarm_limits.flow_delta_enabled = true;
+    c->sensors.alarm_limits.flow_high_enabled = false;
     c->sensors.alarm_limits.pressure_min = 350.f;
     c->sensors.alarm_limits.pressure_max = 1000.f;
     c->sensors.alarm_limits.flow_delta_threshold = 15.f;
+    c->sensors.alarm_limits.flow_high_limit = 90.f;
     c->sensors.alarm_limits.flow_delta_window_ms = 2000;
 
     // wifi
@@ -124,12 +146,38 @@ void appcfg_defaults(AppConfig *c)
     // cloud
     c->cloud.enabled = false;
     set_str(c->cloud.type, sizeof(c->cloud.type), "mqtt");
-    // Tu endpoint real de AWS IoT Core (¡Este está perfecto, déjalo así!)
+    // Tu endpoint real de AWS IoT Core (ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡Este estÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ perfecto, dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©jalo asÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­!)
     set_str(c->cloud.broker_url, sizeof(c->cloud.broker_url), "mqtts://a13o0atpzl606i-ats.iot.us-east-1.amazonaws.com:8883");
-    // Raíz del tópico MQTT (El código en transport_mqtt.c le agregará automáticamente "/telemetry" al final)
+    // RaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­z del tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³pico MQTT (El cÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³digo en transport_mqtt.c le agregarÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ automÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ticamente "/telemetry" al final)
     set_str(c->cloud.topic_base, sizeof(c->cloud.topic_base), "vexel");
-    c->cloud.qos = 1;        // QOS 1 es ideal para asegurar que AWS reciba la telemetría
-    c->cloud.keepalive = 60; // 60 segundos es el estándar más estable para AWS IoT (30s es un poco agresivo y puede causar reconexiones)
+    c->cloud.qos = 1;        // QOS 1 es ideal para asegurar que AWS reciba la telemetrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­a
+    c->cloud.keepalive = 60; // 60 segundos es el estÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ndar mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡s estable para AWS IoT (30s es un poco agresivo y puede causar reconexiones)
+}
+
+static cJSON *user_to_json(const app_user_t *u)
+{
+    cJSON *o = cJSON_CreateObject();
+    cJSON_AddStringToObject(o, "name", u->name);
+    cJSON_AddStringToObject(o, "pin", u->pin);
+    cJSON_AddNumberToObject(o, "role", u->role);
+    cJSON_AddBoolToObject(o, "locked", u->locked);
+    cJSON_AddBoolToObject(o, "must_change_pin", u->must_change_pin);
+    cJSON_AddStringToObject(o, "last", u->last);
+    return o;
+}
+
+static void json_to_user(const cJSON *o, app_user_t *u)
+{
+    if (!cJSON_IsObject(o) || !u) return;
+    getstr(u->name, sizeof(u->name), o, "name");
+    getstr(u->pin, sizeof(u->pin), o, "pin");
+    getstr(u->last, sizeof(u->last), o, "last");
+    const cJSON *role = cJSON_GetObjectItemCaseSensitive(o, "role");
+    const cJSON *locked = cJSON_GetObjectItemCaseSensitive(o, "locked");
+    const cJSON *change = cJSON_GetObjectItemCaseSensitive(o, "must_change_pin");
+    if (cJSON_IsNumber(role)) u->role = (app_user_role_t)role->valueint;
+    if (cJSON_IsBool(locked)) u->locked = cJSON_IsTrue(locked);
+    if (cJSON_IsBool(change)) u->must_change_pin = cJSON_IsTrue(change);
 }
 
 cJSON *json_from_cfg(const AppConfig *c)
@@ -150,11 +198,13 @@ cJSON *json_from_cfg(const AppConfig *c)
     cJSON_AddStringToObject(gen, "timezone", c->general.timezone);
     cJSON_AddStringToObject(gen, "lang", c->general.lang);
     cJSON_AddNumberToObject(gen, "brightness", c->general.brightness);
+    cJSON_AddStringToObject(gen, "theme", c->general.theme);
+    cJSON_AddNumberToObject(gen, "dim_minutes", c->general.dim_minutes);
     // Identidad fija del Hardware (Solo lectura desde el exterior)
     cJSON_AddStringToObject(gen, "model", c->general.model);
     cJSON_AddStringToObject(gen, "serial", c->general.serial);
     cJSON_AddStringToObject(gen, "hw_version", c->general.hw_version);
-    // Versión del Software (Fijada por compilación)
+    // VersiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n del Software (Fijada por compilaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n)
     cJSON_AddStringToObject(gen, "fw_version", c->general.fw_version);
     // Datos de despliegue comercial (Modificables por SD)
     cJSON_AddStringToObject(gen, "partner", c->general.partner);
@@ -165,9 +215,16 @@ cJSON *json_from_cfg(const AppConfig *c)
     cJSON_AddBoolToObject(al, "tone_alert", c->general.alarm.tone_alert);
     cJSON_AddNumberToObject(al, "warn_timeout_s", c->general.alarm.warn_timeout_s);
     cJSON_AddNumberToObject(al, "alert_timeout_s", c->general.alarm.alert_timeout_s);
+    cJSON_AddNumberToObject(al, "volume", c->general.alarm.volume);
+    cJSON_AddNumberToObject(al, "reannounce_minutes", c->general.alarm.reannounce_minutes);
+    cJSON_AddNumberToObject(al, "max_silence_minutes", c->general.alarm.max_silence_minutes);
     cJSON *adm = cJSON_AddObjectToObject(gen, "admin");
     cJSON_AddStringToObject(adm, "user", c->general.admin.user);
     cJSON_AddStringToObject(adm, "pass", c->general.admin.pass);
+    cJSON *users = cJSON_AddArrayToObject(gen, "users");
+    for (int i = 0; i < c->general.users_count && i < APP_MAX_USERS; ++i)
+        cJSON_AddItemToArray(users, user_to_json(&c->general.users[i]));
+    cJSON_AddItemToObject(gen, "factory", user_to_json(&c->general.factory));
 
     cJSON *sns = cJSON_AddObjectToObject(root, "sensors");
     cJSON_AddStringToObject(sns, "pressure_unit", c->sensors.pressure_unit);
@@ -183,9 +240,14 @@ cJSON *json_from_cfg(const AppConfig *c)
     cJSON_AddStringToObject(cal, "last_cal_date", c->sensors.cal.last_cal_date);
     cJSON_AddStringToObject(cal, "next_service_date", c->sensors.cal.next_service_date);
     cJSON *al2 = cJSON_AddObjectToObject(sns, "alarm_limits");
+    cJSON_AddBoolToObject(al2, "pressure_min_enabled", c->sensors.alarm_limits.pressure_min_enabled);
+    cJSON_AddBoolToObject(al2, "pressure_max_enabled", c->sensors.alarm_limits.pressure_max_enabled);
+    cJSON_AddBoolToObject(al2, "flow_delta_enabled", c->sensors.alarm_limits.flow_delta_enabled);
+    cJSON_AddBoolToObject(al2, "flow_high_enabled", c->sensors.alarm_limits.flow_high_enabled);
     cJSON_AddNumberToObject(al2, "pressure_min", c->sensors.alarm_limits.pressure_min);
     cJSON_AddNumberToObject(al2, "pressure_max", c->sensors.alarm_limits.pressure_max);
     cJSON_AddNumberToObject(al2, "flow_delta_threshold", c->sensors.alarm_limits.flow_delta_threshold);
+    cJSON_AddNumberToObject(al2, "flow_high_limit", c->sensors.alarm_limits.flow_high_limit);
     cJSON_AddNumberToObject(al2, "flow_delta_window_ms", c->sensors.alarm_limits.flow_delta_window_ms);
 
     cJSON *wf = cJSON_AddObjectToObject(root, "wifi");
@@ -248,7 +310,7 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
 
     ESP_LOGI("STORAGE", "Iniciando parseo profundo de AppConfig.json...");
 
-    // Obtener versión raíz
+    // Obtener versiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n raÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­z
     const cJSON *ver = cJSON_GetObjectItemCaseSensitive(root, "ver");
     if (cJSON_IsNumber(ver))
         c->ver = ver->valueint;
@@ -266,6 +328,9 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
         const cJSON *br = cJSON_GetObjectItemCaseSensitive(general, "brightness");
         if (cJSON_IsNumber(br))
             c->general.brightness = br->valueint;
+        getstr(c->general.theme, sizeof(c->general.theme), general, "theme");
+        const cJSON *dim = cJSON_GetObjectItemCaseSensitive(general, "dim_minutes");
+        if (cJSON_IsNumber(dim)) c->general.dim_minutes = dim->valueint;
         getstr(c->general.partner, sizeof(c->general.partner), general, "partner");
         getstr(c->general.client, sizeof(c->general.client), general, "client");
 
@@ -276,6 +341,9 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
             const cJSON *t_alert = cJSON_GetObjectItemCaseSensitive(alarm, "tone_alert");
             const cJSON *w_to = cJSON_GetObjectItemCaseSensitive(alarm, "warn_timeout_s");
             const cJSON *a_to = cJSON_GetObjectItemCaseSensitive(alarm, "alert_timeout_s");
+            const cJSON *vol = cJSON_GetObjectItemCaseSensitive(alarm, "volume");
+            const cJSON *rean = cJSON_GetObjectItemCaseSensitive(alarm, "reannounce_minutes");
+            const cJSON *sil = cJSON_GetObjectItemCaseSensitive(alarm, "max_silence_minutes");
 
             if (cJSON_IsBool(t_warn))
                 c->general.alarm.tone_warn = cJSON_IsTrue(t_warn);
@@ -283,8 +351,10 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
                 c->general.alarm.tone_alert = cJSON_IsTrue(t_alert);
             if (cJSON_IsNumber(w_to))
                 c->general.alarm.warn_timeout_s = w_to->valueint;
-            if (cJSON_IsNumber(a_to))
-                c->general.alarm.alert_timeout_s = a_to->valueint;
+            if (cJSON_IsNumber(a_to)) c->general.alarm.alert_timeout_s = a_to->valueint;
+            if (cJSON_IsNumber(vol)) c->general.alarm.volume = vol->valueint;
+            if (cJSON_IsNumber(rean)) c->general.alarm.reannounce_minutes = rean->valueint;
+            if (cJSON_IsNumber(sil)) c->general.alarm.max_silence_minutes = sil->valueint;
         }
 
         cJSON *adm = cJSON_GetObjectItemCaseSensitive(general, "admin");
@@ -293,6 +363,28 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
             getstr(c->general.admin.user, sizeof(c->general.admin.user), adm, "user");
             getstr(c->general.admin.pass, sizeof(c->general.admin.pass), adm, "pass");
         }
+
+        const cJSON *users = cJSON_GetObjectItemCaseSensitive(general, "users");
+        if (cJSON_IsArray(users))
+        {
+            c->general.users_count = 0;
+            const cJSON *u = NULL;
+            cJSON_ArrayForEach(u, users)
+            {
+                if (c->general.users_count >= APP_MAX_USERS) break;
+                json_to_user(u, &c->general.users[c->general.users_count++]);
+            }
+        }
+        else if (c->general.admin.user[0] && c->general.admin.pass[0])
+        {
+            /* MigraciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n config@2: admin simple -> primera cuenta administradora. */
+            c->general.users_count = 1;
+            set_str(c->general.users[0].name, sizeof(c->general.users[0].name), c->general.admin.user);
+            set_str(c->general.users[0].pin, sizeof(c->general.users[0].pin), c->general.admin.pass);
+            c->general.users[0].role = APP_ROLE_ADMIN;
+            c->general.users[0].must_change_pin = true;
+        }
+        json_to_user(cJSON_GetObjectItemCaseSensitive(general, "factory"), &c->general.factory);
     }
 
     // --- RAMA SENSORS ---
@@ -331,17 +423,28 @@ void cfg_from_json(AppConfig *c, const cJSON *root)
         cJSON *limits = cJSON_GetObjectItemCaseSensitive(sensors, "alarm_limits");
         if (limits)
         {
+            const cJSON *p_min_en = cJSON_GetObjectItemCaseSensitive(limits, "pressure_min_enabled");
+            const cJSON *p_max_en = cJSON_GetObjectItemCaseSensitive(limits, "pressure_max_enabled");
             const cJSON *p_min = cJSON_GetObjectItemCaseSensitive(limits, "pressure_min");
             const cJSON *p_max = cJSON_GetObjectItemCaseSensitive(limits, "pressure_max");
             const cJSON *f_dt = cJSON_GetObjectItemCaseSensitive(limits, "flow_delta_threshold");
+            const cJSON *f_de = cJSON_GetObjectItemCaseSensitive(limits, "flow_delta_enabled");
+            const cJSON *f_he = cJSON_GetObjectItemCaseSensitive(limits, "flow_high_enabled");
+            const cJSON *f_hi = cJSON_GetObjectItemCaseSensitive(limits, "flow_high_limit");
             const cJSON *f_dw = cJSON_GetObjectItemCaseSensitive(limits, "flow_delta_window_ms");
 
+            if (cJSON_IsBool(p_min_en))
+                c->sensors.alarm_limits.pressure_min_enabled = cJSON_IsTrue(p_min_en);
+            if (cJSON_IsBool(p_max_en))
+                c->sensors.alarm_limits.pressure_max_enabled = cJSON_IsTrue(p_max_en);
             if (cJSON_IsNumber(p_min))
                 c->sensors.alarm_limits.pressure_min = p_min->valuedouble;
             if (cJSON_IsNumber(p_max))
                 c->sensors.alarm_limits.pressure_max = p_max->valuedouble;
-            if (cJSON_IsNumber(f_dt))
-                c->sensors.alarm_limits.flow_delta_threshold = f_dt->valuedouble;
+            if (cJSON_IsNumber(f_dt)) c->sensors.alarm_limits.flow_delta_threshold = f_dt->valuedouble;
+            if (cJSON_IsBool(f_de)) c->sensors.alarm_limits.flow_delta_enabled = cJSON_IsTrue(f_de);
+            if (cJSON_IsBool(f_he)) c->sensors.alarm_limits.flow_high_enabled = cJSON_IsTrue(f_he);
+            if (cJSON_IsNumber(f_hi)) c->sensors.alarm_limits.flow_high_limit = f_hi->valuedouble;
             if (cJSON_IsNumber(f_dw))
                 c->sensors.alarm_limits.flow_delta_window_ms = f_dw->valueint;
         }
@@ -515,7 +618,7 @@ esp_err_t appcfg_load(AppConfig *out)
     cfg_from_json(out, root);
     cJSON_Delete(root);
 
-    // migraciones si subimos de versión
+    // migraciones si subimos de versiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n
     appcfg_migrate(out);
     return ESP_OK;
 }
@@ -551,22 +654,28 @@ esp_err_t appcfg_save(const AppConfig *in)
 
 esp_err_t appcfg_migrate(AppConfig *io)
 {
-    // ejemplo de migración entre versiones (ahora solo ver==1)
+    // ejemplo de migraciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n entre versiones (ahora solo ver==1)
     if (io->ver < 1)
     {
-        // ... ajustes si venías de 0 (no lo usamos)
+        // ... ajustes si venÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­as de 0 (no lo usamos)
         io->ver = 1;
     }
     // Saneo de campos nuevos: configs viejas en NVS no traen "brightness"
     if (io->general.brightness < 10 || io->general.brightness > 100)
         io->general.brightness = 80;
+    if (strcmp(io->general.theme, "light") != 0) set_str(io->general.theme, sizeof(io->general.theme), "dark");
+    if (io->general.dim_minutes != 0 && io->general.dim_minutes != 1 && io->general.dim_minutes != 5 && io->general.dim_minutes != 10) io->general.dim_minutes = 5;
+    if (io->general.alarm.volume < 30 || io->general.alarm.volume > 100) io->general.alarm.volume = 80;
+    if (io->general.alarm.reannounce_minutes < 1) io->general.alarm.reannounce_minutes = 15;
+    if (io->general.alarm.max_silence_minutes < 1) io->general.alarm.max_silence_minutes = 2;
+    if (!(io->sensors.alarm_limits.flow_high_limit > 0.f)) io->sensors.alarm_limits.flow_high_limit = io->sensors.flow_fullscale_lpm * 0.9f;
     // ... ni "flow_fullscale_lpm"
     if (!(io->sensors.flow_fullscale_lpm > 0.f) || io->sensors.flow_fullscale_lpm > 10000.f)
         io->sensors.flow_fullscale_lpm = 100.f;
     return ESP_OK;
 }
 
-// Snapshot interno en DRAM (estático)
+// Snapshot interno en DRAM (estÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡tico)
 static AppConfig s_cfg_snapshot;
 static bool s_cfg_snapshot_inited = false;
 
@@ -602,5 +711,5 @@ AppConfig *appcfg_cache_peek(void)
         appcfg_defaults(&s_cfg_snapshot);
         s_cfg_snapshot_inited = true;
     }
-    return &s_cfg_snapshot; // ⚠ No modificar desde fuera
+    return &s_cfg_snapshot; // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  No modificar desde fuera
 }

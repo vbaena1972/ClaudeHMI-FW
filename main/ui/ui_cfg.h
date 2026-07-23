@@ -6,6 +6,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include "storage.h"
+#include "lvgl.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,20 +43,52 @@ void        ui_cfg_apply_timezone(const char *iana); /* aplica sin guardar (boot
 /* Valida un PIN de 4 dígitos contra general.admin.pass. */
 bool ui_cfg_check_pin(const char *pin);
 
+/* Autenticación y sesión para Configuración. */
+int ui_auth_user_count(void);
+const app_user_t *ui_auth_user_at(int index);
+const app_user_t *ui_auth_factory(void);
+bool ui_auth_login(const app_user_t *user, const char *pin);
+void ui_auth_logout(void);
+bool ui_auth_active(void);
+app_user_role_t ui_auth_role(void);
+const char *ui_auth_current_user(void);
+
 /* Lecturas para poblar las pantallas al cargarlas. */
 const char *ui_cfg_pressure_unit(void);
 const char *ui_cfg_flow_unit(void);
 const char *ui_cfg_gas(void);
 const char *ui_cfg_lang(void);
 int  ui_cfg_brightness(void);
+const char *ui_cfg_theme(void);
+void ui_cfg_set_theme(const char *theme);
+int ui_cfg_dim_minutes(void);
+void ui_cfg_set_dim_minutes(int minutes);
+void ui_cfg_apply_visual_mode(lv_obj_t *root);
 float ui_cfg_pressure_min(void);
 float ui_cfg_pressure_max(void);
+bool ui_cfg_pressure_limit_enabled(bool maximum);
+void ui_cfg_set_pressure_limit_enabled(bool maximum, bool enabled);
+void ui_cfg_set_alarm_tone(bool alert, bool enabled);
+bool ui_cfg_alarm_tone(bool alert);
+int ui_cfg_alarm_volume(void);
+int ui_cfg_reannounce_minutes(void);
+int ui_cfg_max_silence_minutes(void);
+void ui_cfg_set_alarm_audio(int volume,int reannounce,int silence);
+bool ui_cfg_flow_limit_enabled(bool high);
+float ui_cfg_flow_limit(bool high);
+int ui_cfg_flow_window_ms(void);
+void ui_cfg_set_flow_alarm(bool high,bool enabled,float value);
+void ui_cfg_set_flow_window_ms(int ms);
 
 /* --- Edición de umbral con confirmación (keypad -> confirmar -> PIN -> aplicar) --- */
 typedef enum {
     UI_EDIT_NONE = 0,
     UI_EDIT_PRES_MIN,
     UI_EDIT_PRES_MAX,
+    UI_EDIT_FLOW_DELTA,
+    UI_EDIT_FLOW_HIGH,
+    UI_EDIT_AUDIO_REANNOUNCE,
+    UI_EDIT_AUDIO_SILENCE,
 } ui_edit_target_t;
 
 void        ui_edit_begin(ui_edit_target_t target); /* fija target y valor "antes" */
@@ -63,7 +97,8 @@ const char *ui_edit_unit(void);                     /* unidad de presión actual
 float       ui_edit_old(void);                      /* en unidad de DISPLAY */
 float       ui_edit_new(void);                      /* en unidad de DISPLAY */
 void        ui_edit_set_new(float v);               /* en unidad de DISPLAY */
-void        ui_edit_apply(void);                    /* convierte a kPa, NVS + refresca main */
+void        ui_edit_apply(void);
+bool        ui_edit_is_audio(void);                    /* convierte a kPa, NVS + refresca main */
 
 #ifdef __cplusplus
 }

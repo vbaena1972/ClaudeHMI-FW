@@ -1,99 +1,85 @@
 #include "ui_sensorDiagScreen.h"
-#include "ui_i18n.h"
 #include "ui_widgets.h"
 #include "ui_theme.h"
-
-/* Diagnóstico de sensores (mockup 4d). */
+#include "ui_cfg.h"
+#include "ui_i18n.h"
+#include "ui.h"
+#include "alarm_mgr.h"
 
 lv_obj_t *ui_sensorDiagScreen = NULL;
+static lv_obj_t *s_vol;
 
-static lv_obj_t *kvcol(lv_obj_t *parent, const char *cap, const char *val)
+static void volume_cb(lv_event_t *e)
 {
-    lv_obj_t *c = ui_box(parent);
-    lv_obj_set_size(c, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(c, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
-    lv_obj_t *l = ui_label(c, cap, UI_FONT_XS, UI_C_TEXT_MUTED);
-    lv_obj_set_style_text_letter_space(l, 1, 0);
-    ui_label(c, val, UI_FONT_SM, 0xcfd3d9);
-    return c;
+    int v = lv_slider_get_value(lv_event_get_target(e));
+    lv_label_set_text_fmt(s_vol, "%d%%", v);
+    if (lv_event_get_code(e) == LV_EVENT_RELEASED)
+        ui_cfg_set_alarm_audio(v, ui_cfg_reannounce_minutes(), ui_cfg_max_silence_minutes());
 }
+static void test_cb(lv_event_t *e) { (void)e; alarm_mgr_test_buzzer(); }
 
-static void sensor_row(lv_obj_t *parent, const char *sym, uint32_t icon_col,
-                       const char *name, const char *desc,
-                       const char *raw, const char *cal,
-                       const char *status, uint32_t status_col)
+static void rebuild(void)
 {
-    lv_obj_t *r = ui_card(parent);
-    lv_obj_set_width(r, LV_PCT(100));
-    lv_obj_set_flex_grow(r, 1);
-    lv_obj_set_style_radius(r, UI_RADIUS_TILE, 0);
-    lv_obj_set_style_pad_hor(r, 14, 0);
-    lv_obj_set_style_pad_ver(r, 0, 0);
-    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(r, 12, 0);
-
-    lv_obj_t *badge = lv_obj_create(r);
-    ui_kill_scroll(badge);
-    lv_obj_set_size(badge, 34, 34);
-    lv_obj_set_style_radius(badge, 9, 0);
-    lv_obj_set_style_bg_color(badge, ui_col(icon_col), 0);
-    lv_obj_set_style_bg_opa(badge, LV_OPA_20, 0);
-    lv_obj_center(ui_icon(badge, sym, UI_ICON_MD, icon_col));
-
-    lv_obj_t *nc = ui_box(r);
-    lv_obj_set_flex_grow(nc, 1);
-    lv_obj_set_height(nc, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(nc, LV_FLEX_FLOW_COLUMN);
-    ui_label(nc, name, UI_FONT_MD, UI_C_TEXT);
-    ui_label(nc, desc, UI_FONT_XS, UI_C_TEXT_MUTED);
-
-    kvcol(r, _t("CRUDO"), raw);
-    kvcol(r, _t("CAL."), cal);
-
-    lv_obj_t *pill = ui_box(r);
-    lv_obj_set_size(pill, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_style_bg_color(pill, ui_col(status_col), 0);
-    lv_obj_set_style_bg_opa(pill, LV_OPA_10, 0);
-    lv_obj_set_style_radius(pill, UI_RADIUS_SM, 0);
-    lv_obj_set_style_border_width(pill, 1, 0);
-    lv_obj_set_style_border_color(pill, ui_col(status_col), 0);
-    lv_obj_set_style_border_opa(pill, LV_OPA_30, 0);
-    lv_obj_set_style_pad_hor(pill, 10, 0);
-    lv_obj_set_style_pad_ver(pill, 4, 0);
-    lv_obj_set_flex_flow(pill, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(pill, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(pill, 5, 0);
-    lv_obj_t *dot = ui_box(pill);
-    lv_obj_set_size(dot, 6, 6);
-    lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(dot, ui_col(status_col), 0);
-    lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
-    ui_label(pill, status, UI_FONT_XS, status_col);
+    lv_obj_t *old = ui_sensorDiagScreen;
+    ui_sensorDiagScreen = NULL;
+    ui_sensorDiagScreen_screen_init();
+    lv_screen_load(ui_sensorDiagScreen);
+    lv_obj_delete_delayed(old, 100);
 }
-
-static lv_obj_t *action_btn(lv_obj_t *parent, const char *sym, const char *txt,
-                            uint32_t bg, uint32_t border, uint32_t txt_col)
+static void step_cb(lv_event_t *e)
 {
-    lv_obj_t *b = ui_box(parent);
-    lv_obj_set_flex_grow(b, 1);
-    lv_obj_set_height(b, LV_SIZE_CONTENT);
-    lv_obj_set_style_bg_color(b, ui_col(bg), 0);
-    lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(b, UI_RADIUS_SM, 0);
-    lv_obj_set_style_border_width(b, 1, 0);
-    lv_obj_set_style_border_color(b, ui_col(border), 0);
-    lv_obj_set_style_pad_ver(b, 7, 0);
-    lv_obj_set_flex_flow(b, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(b, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(b, 7, 0);
-    lv_obj_add_flag(b, LV_OBJ_FLAG_CLICKABLE);
-    ui_icon(b, sym, UI_ICON_SM, txt_col);
-    ui_label(b, txt, UI_FONT_SM, txt_col);
+    int code = (int)(intptr_t)lv_event_get_user_data(e);
+    int r = ui_cfg_reannounce_minutes(), s = ui_cfg_max_silence_minutes();
+    if (code == 1 && r < 60) r++;
+    if (code == -1 && r > 1) r--;
+    if (code == 2 && s < 15) s++;
+    if (code == -2 && s > 1) s--;
+    ui_cfg_set_alarm_audio(ui_cfg_alarm_volume(), r, s);
+    rebuild();
+}
+static void edit_cb(lv_event_t *e)
+{
+    int kind = (int)(intptr_t)lv_event_get_user_data(e);
+    ui_edit_begin(kind == 1 ? UI_EDIT_AUDIO_REANNOUNCE : UI_EDIT_AUDIO_SILENCE);
+    ui_open_keypad_cb(e);
+}
+static lv_obj_t *small_button(lv_obj_t *parent, const char *text, int code)
+{
+    lv_obj_t *b = lv_button_create(parent);
+    ui_style_button(b, UI_C_CARD_BG2);
+    lv_obj_set_size(b, 38, 40);
+    lv_obj_t *l = ui_label(b, text, UI_FONT_MD, UI_C_TEXT);
+    lv_obj_center(l);
+    lv_obj_add_event_cb(b, step_cb, LV_EVENT_CLICKED, (void *)(intptr_t)code);
     return b;
 }
+static void stepper(lv_obj_t *parent, const char *title, int value, int kind)
+{
+    lv_obj_t *c = ui_card(parent);
+    lv_obj_set_flex_grow(c, 1);
+    lv_obj_set_height(c, 88);
+    lv_obj_set_style_pad_row(c, 8, 0);
+    lv_obj_set_style_pad_all(c, 8, 0);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
+    ui_label(c, title, UI_FONT_XS, UI_C_TEXT_2);
 
+    lv_obj_t *row = ui_box(c);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, 40);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_column(row, 6, 0);
+    small_button(row, "-", -kind);
+
+    lv_obj_t *value_btn = lv_button_create(row);
+    ui_style_button(value_btn, UI_C_CARD_BG2);
+    lv_obj_set_flex_grow(value_btn, 1);
+    lv_obj_set_height(value_btn, 40);
+    lv_obj_t *value_lbl = ui_label(value_btn, "", UI_FONT_MD, UI_C_TEXT);
+    lv_label_set_text_fmt(value_lbl, "%d min", value);
+    lv_obj_center(value_lbl);
+    lv_obj_add_event_cb(value_btn, edit_cb, LV_EVENT_CLICKED, (void *)(intptr_t)kind);
+    small_button(row, "+", kind);
+}
 void ui_sensorDiagScreen_screen_init(void)
 {
     ui_sensorDiagScreen = ui_screen_base();
@@ -101,31 +87,57 @@ void ui_sensorDiagScreen_screen_init(void)
     lv_obj_set_style_pad_all(ui_sensorDiagScreen, 8, 0);
     lv_obj_set_style_pad_row(ui_sensorDiagScreen, 7, 0);
 
-    lv_obj_t *hdr = ui_nav_header(ui_sensorDiagScreen, _t("Sensores"));
-    ui_pill(hdr, "3 activos · 0 fallas", UI_FONT_XS, UI_C_OK_DIM, UI_C_OK_BG, UI_C_OK_BORDER);
+    lv_obj_t *h = ui_nav_header(ui_sensorDiagScreen, _t("Audio de alarmas"));
+    lv_obj_t *tb = lv_button_create(h);
+    lv_obj_set_size(tb, 118, 30);
+    lv_obj_set_style_bg_opa(tb, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(tb, 1, 0);
+    lv_obj_set_style_border_color(tb, ui_col(UI_C_BORDER), 0);
+    lv_obj_set_style_radius(tb, UI_RADIUS_SM, 0);
+    lv_obj_set_style_shadow_width(tb, 0, 0);
+    lv_obj_set_flex_flow(tb, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(tb, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(tb, 5, 0);
+    lv_obj_t *ti = lv_label_create(tb);
+    lv_label_set_text(ti, LV_SYMBOL_VOLUME_MAX);
+    lv_obj_set_style_text_color(ti, ui_col(UI_C_TEAL), 0);
+    ui_label(tb, _t("Probar buzzer"), UI_FONT_XS, UI_C_TEXT);
+    lv_obj_add_event_cb(tb, test_cb, LV_EVENT_CLICKED, NULL);
 
-    lv_obj_t *rows = ui_box(ui_sensorDiagScreen);
-    lv_obj_set_width(rows, LV_PCT(100));
-    lv_obj_set_flex_grow(rows, 1);
-    lv_obj_set_flex_flow(rows, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_row(rows, 7, 0);
+    lv_obj_t *v = ui_card(ui_sensorDiagScreen);
+    lv_obj_set_size(v, LV_PCT(100), 76);
+    lv_obj_set_style_pad_all(v, 10, 0);
+    lv_obj_set_flex_flow(v, LV_FLEX_FLOW_COLUMN);
+    lv_obj_t *vh = ui_box(v);
+    lv_obj_set_size(vh, LV_PCT(100), 20);
+    lv_obj_set_flex_flow(vh, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(vh, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    ui_label(vh, _t("Volumen del audible"), UI_FONT_MD, UI_C_TEXT);
+    s_vol = ui_label(vh, "", UI_FONT_MD, UI_C_OK);
+    lv_label_set_text_fmt(s_vol, "%d%%", ui_cfg_alarm_volume());
+    lv_obj_t *sl = lv_slider_create(v);
+    lv_obj_set_size(sl, LV_PCT(100), 7);
+    lv_slider_set_range(sl, 30, 100);
+    lv_slider_set_value(sl, ui_cfg_alarm_volume(), LV_ANIM_OFF);
+    lv_obj_set_ext_click_area(sl, 10);
+    lv_obj_add_event_cb(sl, volume_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(sl, volume_cb, LV_EVENT_RELEASED, NULL);
 
-    sensor_row(rows, UI_SYM_GAUGE, UI_C_OK, _t("Presión · P-01"), _t("transductor 0–2200 psi · I²C 0x28"),
-               "3.412 V · 1400 psi", "12 mar 2026", "OK", UI_C_OK);
-    sensor_row(rows, UI_SYM_WIND, UI_C_OK, _t("Flujo · F-01"), _t("másico térmico 0–1500 SCCM · UART"),
-               "2.870 V · 889 SCCM", "12 mar 2026", "OK", UI_C_OK);
-    sensor_row(rows, UI_SYM_TEMPERATURE, UI_C_WARN_SOFT, _t("Temp. de línea · T-01"), _t("compensación de flujo · on-die"),
-               "— · 23.4 °C", _t("fábrica"), _t("DERIVA"), UI_C_WARN_SOFT);
+    lv_obj_t *pat = ui_card(ui_sensorDiagScreen);
+    lv_obj_set_size(pat, LV_PCT(100), 60);
+    lv_obj_set_style_pad_all(pat, 9, 0);
+    lv_obj_set_flex_flow(pat, LV_FLEX_FLOW_COLUMN);
+    ui_label(pat, _t("Patrón por prioridad"), UI_FONT_XS, UI_C_TEXT_2);
+    ui_label(pat, _t("Alta: ráfaga rápida   -   Advertencia: pulsos espaciados"), UI_FONT_XS, UI_C_TEXT);
 
-    lv_obj_t *acts = ui_box(ui_sensorDiagScreen);
-    lv_obj_set_size(acts, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(acts, LV_FLEX_FLOW_ROW);
-    lv_obj_set_style_pad_column(acts, 9, 0);
-    action_btn(acts, UI_SYM_REFRESH, _t("Recalibrar cero"), UI_C_CARD_BG, 0x2c313a, 0xcfd3d9);
-    action_btn(acts, UI_SYM_FILE_EXPORT, _t("Exportar log de sensores"), UI_C_OK_BG, UI_C_OK_BORDER, UI_C_OK_SOFT);
+    lv_obj_t *r = ui_box(ui_sensorDiagScreen);
+    lv_obj_set_size(r, LV_PCT(100), 88);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_column(r, 7, 0);
+    stepper(r, _t("Reanunciar tras silencio"), ui_cfg_reannounce_minutes(), 1);
+    stepper(r, _t("Silencio máximo"), ui_cfg_max_silence_minutes(), 2);
 }
-
 void ui_sensorDiagScreen_screen_destroy(void)
 {
-    if (ui_sensorDiagScreen) { lv_obj_del(ui_sensorDiagScreen); ui_sensorDiagScreen = NULL; }
+    if (ui_sensorDiagScreen) { lv_obj_del(ui_sensorDiagScreen); ui_sensorDiagScreen = NULL; s_vol = NULL; }
 }

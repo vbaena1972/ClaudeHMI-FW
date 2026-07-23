@@ -13,7 +13,7 @@ extern "C"
     typedef enum
     {
         APP_BT_SEC_JW = 0,     // Just Works
-        APP_BT_SEC_PASSKEY = 1 // Passkey (PIN de 6 dígitos)
+        APP_BT_SEC_PASSKEY = 1 // Passkey (PIN de 6 dÃƒÂ­gitos)
     } app_bt_sec_mode_t;
 
     typedef enum
@@ -28,6 +28,26 @@ extern "C"
         MAXIMO,
     } app_bt_tx_power_t;
 
+    #define APP_MAX_USERS 8
+
+    typedef enum
+    {
+        APP_ROLE_NONE = 0,
+        APP_ROLE_TECH = 1,
+        APP_ROLE_ADMIN = 2,
+        APP_ROLE_FACTORY = 3
+    } app_user_role_t;
+
+    typedef struct
+    {
+        char name[24];
+        char pin[24];
+        app_user_role_t role;
+        bool locked;
+        bool must_change_pin;
+        char last[24];
+    } app_user_t;
+
     typedef struct
     {
         // GENERAL
@@ -38,13 +58,15 @@ extern "C"
             char timezone[32];  // "America/Bogota"
             char lang[3];       // "es" | "en"
             int brightness;     // brillo de pantalla 10..100 (%)
+            char theme[8];      // dark | light
+            int dim_minutes;    // 0, 1, 5 o 10; 0 = nunca
 
             // Identidad fija del Hardware (Solo lectura desde el exterior)
             char model[16];
             char serial[24];
             char hw_version[16];
 
-            // Versión del Software (Fijada por compilación)
+            // VersiÃƒÂ³n del Software (Fijada por compilaciÃƒÂ³n)
             char fw_version[16];
 
             // Datos de despliegue comercial (Modificables por SD)
@@ -56,8 +78,14 @@ extern "C"
                 bool tone_alert;
                 int warn_timeout_s;
                 int alert_timeout_s;
+                int volume;
+                int reannounce_minutes;
+                int max_silence_minutes;
             } alarm;
-            // Usuarios (simple): aquí solo 1 admin para no alargar
+            int users_count;
+            app_user_t users[APP_MAX_USERS];
+            app_user_t factory;
+            /* Compatibilidad con config@2; se migra a users[] al cargar. */
             struct
             {
                 char user[16];
@@ -82,8 +110,11 @@ extern "C"
             } cal;
             struct
             {
+                bool pressure_min_enabled, pressure_max_enabled;
+                bool flow_delta_enabled, flow_high_enabled;
                 float pressure_min, pressure_max;
                 float flow_delta_threshold;
+                float flow_high_limit;
                 int flow_delta_window_ms;
             } alarm_limits;
         } sensors;
@@ -112,7 +143,7 @@ extern "C"
         {
 
             bool enabled;
-            bool advertise;             // control explícito de advertising
+            bool advertise;             // control explÃƒÂ­cito de advertising
             app_bt_tx_power_t tx_power; // 0..7 (o el rango que uses)
             struct
             {

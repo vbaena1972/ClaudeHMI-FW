@@ -1,6 +1,7 @@
 #include "sensors_runtime.h"
 
 #include <string.h>
+#include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -8,7 +9,7 @@
 #include "esp_log.h"
 
 //------------------------------------------------------------------
-// Parámetros del buffer y tarea dummy
+// ParÃ¡metros del buffer y tarea dummy
 //------------------------------------------------------------------
 
 #define SENSORS_BUFFER_LEN 600      // ~600 muestras
@@ -23,14 +24,15 @@ static const char *TAG = "sensors_runtime";
 //------------------------------------------------------------------
 
 static sensor_sample_t s_buf[SENSORS_BUFFER_LEN];
-static size_t s_head = 0;  // próxima posición de escritura
-static size_t s_count = 0; // nº de elementos válidos en buffer
+static size_t s_head = 0;  // prÃ³xima posiciÃ³n de escritura
+static size_t s_count = 0; // nÂº de elementos vÃ¡lidos en buffer
 
 static SemaphoreHandle_t s_lock = NULL;
 
-// Config caché (por si luego quieres usar cal.* aquí)
+// Config cachÃ© (por si luego quieres usar cal.* aquÃ­)
 static AppConfig s_cfg_cache;
 static bool s_cfg_valid = false;
+static uint32_t s_reported_faults = SENSOR_FAULT_NONE;
 
 // Tarea dummy (opcional)
 static TaskHandle_t s_dummy_task_handle = NULL;
@@ -38,7 +40,7 @@ static TaskHandle_t s_dummy_task_handle = NULL;
 static void sensors_dummy_task(void *arg);
 
 //------------------------------------------------------------------
-// Helpers de sincronización
+// Helpers de sincronizaciÃ³n
 //------------------------------------------------------------------
 
 static inline void lock(void)
@@ -54,7 +56,7 @@ static inline void unlock(void)
 }
 
 //------------------------------------------------------------------
-// API pública
+// API pÃºblica
 //------------------------------------------------------------------
 
 bool sensors_runtime_init(const AppConfig *cfg)
@@ -86,8 +88,8 @@ bool sensors_runtime_init(const AppConfig *cfg)
     }
     unlock();
 
-    // Arrancamos la tarea dummy de generación de muestras (para pruebas).
-    // Cuando tengas lectura real, puedes comentar esto y empujar tú mismo.
+    // Arrancamos la tarea dummy de generaciÃ³n de muestras (para pruebas).
+    // Cuando tengas lectura real, puedes comentar esto y empujar tÃº mismo.
     if (!s_dummy_task_handle)
     {
         BaseType_t ok = xTaskCreatePinnedToCore(
@@ -103,7 +105,7 @@ bool sensors_runtime_init(const AppConfig *cfg)
             ESP_LOGI(TAG, "No se pudo crear tarea dummy de sensores");
             s_dummy_task_handle = NULL;
             // No devolvemos false porque el runtime puede servir igual
-            // si tú empujas muestras manualmente.
+            // si tÃº empujas muestras manualmente.
         }
     }
 
@@ -140,6 +142,27 @@ void sensors_runtime_push_sample(const sensor_sample_t *s)
     unlock();
 }
 
+void sensors_runtime_report_faults(uint32_t faults)
+{
+    lock(); s_reported_faults = faults; unlock();
+}
+
+uint32_t sensors_runtime_get_faults(void)
+{
+    uint32_t faults; sensor_sample_t last = {0}; bool have = false; bool cfg_ok;
+    lock();
+    faults = s_reported_faults; cfg_ok = s_cfg_valid;
+    if (s_count) { size_t i=(s_head+SENSORS_BUFFER_LEN-1)%SENSORS_BUFFER_LEN; last=s_buf[i]; have=true; }
+    unlock();
+    if (!cfg_ok) faults |= SENSOR_FAULT_CONFIG;
+    if (!have) return faults | SENSOR_FAULT_NO_DATA;
+    int64_t age_ms = esp_timer_get_time()/1000 - last.ts_ms;
+    if (age_ms < 0 || age_ms > 1000) faults |= SENSOR_FAULT_STALE;
+    float pmax = 1379.0f * 1.10f;
+    float fmax = s_cfg_cache.sensors.flow_fullscale_lpm > 0 ? s_cfg_cache.sensors.flow_fullscale_lpm * 1.20f : 120.0f;
+    if (!isfinite(last.pressure_kpa) || !isfinite(last.flow_lpm) || last.pressure_kpa < -5.f || last.pressure_kpa > pmax || last.flow_lpm < -1.f || last.flow_lpm > fmax) faults |= SENSOR_FAULT_INVALID;
+    return faults;
+}
 bool sensors_runtime_get_last(sensor_sample_t *out)
 {
     if (!out)
@@ -181,14 +204,14 @@ bool sensors_runtime_get_min_max(int64_t window_ms,
     bool has = false;
     sensor_sample_t min_s = {0}, max_s = {0};
 
-    // Recorremos desde la muestra más reciente hacia atrás
+    // Recorremos desde la muestra mÃ¡s reciente hacia atrÃ¡s
     for (size_t i = 0; i < s_count; ++i)
     {
         size_t idx = (s_head + SENSORS_BUFFER_LEN - 1 - i) % SENSORS_BUFFER_LEN;
         const sensor_sample_t *s = &s_buf[idx];
 
         if (s->ts_ms < from_ms)
-            break; // más allá de la ventana
+            break; // mÃ¡s allÃ¡ de la ventana
 
         if (!has)
         {
@@ -197,7 +220,7 @@ bool sensors_runtime_get_min_max(int64_t window_ms,
         }
         else
         {
-            // Presión
+            // PresiÃ³n
             if (s->pressure_kpa < min_s.pressure_kpa)
                 min_s.pressure_kpa = s->pressure_kpa;
             if (s->pressure_kpa > max_s.pressure_kpa)
@@ -245,12 +268,12 @@ bool sensors_runtime_get_series(int64_t window_ms,
     int64_t now_ms = esp_timer_get_time() / 1000;
     int64_t from_ms = now_ms - window_ms;
 
-    // Primero contamos cuántos entran en la ventana (desde el más antiguo hacia arriba)
-    // Para devolverlos en orden cronológico ascendente.
+    // Primero contamos cuÃ¡ntos entran en la ventana (desde el mÃ¡s antiguo hacia arriba)
+    // Para devolverlos en orden cronolÃ³gico ascendente.
     size_t n = 0;
     sensor_sample_t tmp[SENSORS_BUFFER_LEN]; // buffer temporal en stack (16 bytes * 600 = ~9.6 kB)
 
-    size_t idx = (s_head + SENSORS_BUFFER_LEN - s_count) % SENSORS_BUFFER_LEN; // índice del más antiguo
+    size_t idx = (s_head + SENSORS_BUFFER_LEN - s_count) % SENSORS_BUFFER_LEN; // Ã­ndice del mÃ¡s antiguo
     for (size_t i = 0; i < s_count; ++i)
     {
         const sensor_sample_t *s = &s_buf[idx];
@@ -312,7 +335,7 @@ static void sensors_dummy_task(void *arg)
 
         sensors_runtime_push_sample(&s);
 
-        // Pequeña evolución de prueba (diente de sierra)
+        // PequeÃ±a evoluciÃ³n de prueba (diente de sierra)
         p += dp;
         if (p > 1400.0f || p < 0.0f)
             dp = -dp;

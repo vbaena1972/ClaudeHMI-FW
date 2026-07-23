@@ -27,6 +27,8 @@ extern "C" {
 #include "screens/ui_keypadScreen.h"
 #include "screens/ui_confirmScreen.h"
 #include "screens/ui_pinScreen.h"
+#include "screens/ui_loginScreen.h"
+#include "screens/ui_datetimeScreen.h"
 #include "screens/ui_bleAppScreen.h"
 #include "screens/ui_netWifiScreen.h"
 #include "screens/ui_netEthScreen.h"
@@ -40,13 +42,17 @@ void ui_destroy(void);
 /* --- Dispatch de navegación (callbacks LVGL usados por botones) ---
  * Cada pantalla se crea perezosamente la primera vez que se abre. */
 void ui_open_general_cb(lv_event_t *e);
+void ui_open_general_authenticated_cb(lv_event_t *e);
 void ui_open_general_simple_cb(lv_event_t *e);
+void ui_open_datetime_cb(lv_event_t *e);
 void ui_open_sensor_cb(lv_event_t *e);        /* sensorScreen editable */
 void ui_open_sensordiag_cb(lv_event_t *e);    /* diagnóstico de sensores */
 void ui_open_info_cb(lv_event_t *e);
 void ui_open_connectivity_cb(lv_event_t *e);
 void ui_open_bleapp_cb(lv_event_t *e);
 void ui_open_pin_cb(lv_event_t *e);
+void ui_open_config_pin_cb(lv_event_t *e);
+void ui_open_login_cb(lv_event_t *e);
 void ui_open_keypad_cb(lv_event_t *e);
 void ui_open_confirm_cb(lv_event_t *e);
 void ui_open_net_wifi_cb(lv_event_t *e);

@@ -52,12 +52,12 @@
 
 // #define SD_CD_PIN 42
 //  Tareas de Procesamiento de Datos (Workers)
-#define PRIO_BLE_WORKER 4 // Procesar JSON rápido, pero dejar renderizar a LVGL
+#define PRIO_BLE_WORKER 4 // Procesar JSON rÃƒÂ¡pido, pero dejar renderizar a LVGL
 
-// Tareas de Lógica de Interfaz (Refresco)
+// Tareas de LÃƒÂ³gica de Interfaz (Refresco)
 #define PRIO_UI_LOGIC 2 // BAJA. Debe ser MENOR que la tarea de LVGL para evitar deadlock.
 
-// Tareas de Inicialización (Corren una vez y mueren/suspenden)
+// Tareas de InicializaciÃƒÂ³n (Corren una vez y mueren/suspenden)
 #define PRIO_INIT_TASK 3 // Media.
 
 //#define MY_TASK_STACK_WORDS 16384
@@ -103,7 +103,7 @@ static bool wifi_cfg_valid = false;
 #define BSP_I2C_SDA (GPIO_NUM_16)
 #define BSP_I2C_PORT 1
 
-// Definición de la macro de seguridad: Si el objeto es NULL, salta y evita un potencial crash.
+// DefiniciÃƒÂ³n de la macro de seguridad: Si el objeto es NULL, salta y evita un potencial crash.
 #define LV_OBJ_GUARD(obj)                                        \
     if ((obj) == NULL)                                           \
     {                                                            \
@@ -119,11 +119,11 @@ static heap_trace_record_t trace_record[400];
 
 static void ui_refresh_task(void *arg);
 
-// ISR (Manejador de la interrupción por hardware)
+// ISR (Manejador de la interrupciÃƒÂ³n por hardware)
 static void IRAM_ATTR sd_cd_isr_handler(void *arg)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    // Si el pin pasa a bajo (0) significa que la tarjeta entró (comportamiento común de SD_CD)
+    // Si el pin pasa a bajo (0) significa que la tarjeta entrÃƒÂ³ (comportamiento comÃƒÂºn de SD_CD)
     ESP_LOGI("SD_CD", "Interrupcion por microSD intsertada...");
     if (gpio_get_level(SD_CD_PIN) == 0)
     {
@@ -135,14 +135,14 @@ static void IRAM_ATTR sd_cd_isr_handler(void *arg)
     }
 }
 
-// Evento del botón de reinicio en LVGL
+// Evento del botÃƒÂ³n de reinicio en LVGL
 static void restart_btn_event_cb(lv_event_t *e)
 {
-    ESP_LOGW("MAIN", "Reiniciando equipo por confirmación del usuario...");
+    ESP_LOGW("MAIN", "Reiniciando equipo por confirmaciÃƒÂ³n del usuario...");
     esp_restart();
 }
 
-// Función obligatoria en ESP-IDF v6 para enlazar SystemView y AppTrace
+// FunciÃƒÂ³n obligatoria en ESP-IDF v6 para enlazar SystemView y AppTrace
 esp_trace_open_params_t esp_trace_get_user_params(void)
 {
     esp_trace_open_params_t trace_params = {
@@ -168,7 +168,7 @@ static void ble_json_worker(void *arg)
     {
         if (m.buf && m.len)
         {
-            // Procesa AQUÍ, ya fuera del BTC_TASK
+            // Procesa AQUÃƒÂ, ya fuera del BTC_TASK
             (void)appcfg_patch(-1, m.buf, "ble");
             free(m.buf);
         }
@@ -262,7 +262,7 @@ static void sd_monitor_task(void *pvParameters)
     gpio_config(&io_conf);
 
     // =========================================================
-    // INSTALACIÓN SEGURA DEL SERVICIO ISR
+    // INSTALACIÃƒâ€œN SEGURA DEL SERVICIO ISR
     // =========================================================
     esp_err_t isr_err = gpio_install_isr_service(0);
     // Si da ESP_ERR_INVALID_STATE significa que ya estaba instalado, lo ignoramos.
@@ -278,14 +278,14 @@ static void sd_monitor_task(void *pvParameters)
     {
         if (xSemaphoreTake(s_sd_sem, portMAX_DELAY) == pdTRUE)
         {
-            // 1. DEBOUNCE: Esperamos 500ms a que pase el ruido eléctrico de la inserción
+            // 1. DEBOUNCE: Esperamos 500ms a que pase el ruido elÃƒÂ©ctrico de la inserciÃƒÂ³n
             vTaskDelay(pdMS_TO_TICKS(500));
             if (gpio_get_level(SD_CD_PIN) != 0)
                 continue; // Falso contacto, abortar
 
-            ESP_LOGW("SD_CD", "¡Tarjeta MicroSD insertada (Hot-Plug)!");
+            ESP_LOGW("SD_CD", "Ã‚Â¡Tarjeta MicroSD insertada (Hot-Plug)!");
 
-            // 2. MONTAJE: ¡AFUERA DEL MUTEX!
+            // 2. MONTAJE: Ã‚Â¡AFUERA DEL MUTEX!
             esp_err_t r = mount_sdcard_hotplug();
             if (r != ESP_OK)
             {
@@ -294,20 +294,20 @@ static void sd_monitor_task(void *pvParameters)
             }
             else
             {
-                ESP_LOGI("SD_CD", "Sistema de archivos de la SD inicializado con éxito.");
+                ESP_LOGI("SD_CD", "Sistema de archivos de la SD inicializado con ÃƒÂ©xito.");
             }
 
-            // 3. UI: ¡ADENTRO DEL MUTEX!
+            // 3. UI: Ã‚Â¡ADENTRO DEL MUTEX!
             if (bsp_display_lock(portMAX_DELAY))
             {
                 ui_sd_show();
-                ui_sd_progress(10, "Tarjeta detectada…");
+                ui_sd_progress(10, "Tarjeta detectadaÃ¢â‚¬Â¦");
                 bsp_display_unlock();
             }
 
             bool debede_actualizar = false;
 
-            // 4. LECTURA DE ARCHIVOS: ¡AFUERA DEL MUTEX!
+            // 4. LECTURA DE ARCHIVOS: Ã‚Â¡AFUERA DEL MUTEX!
             DIR *dir = opendir("/sdcard");
             if (dir)
             {
@@ -324,7 +324,7 @@ static void sd_monitor_task(void *pvParameters)
             {
                 if (bsp_display_lock(portMAX_DELAY))
                 {
-                    ui_sd_progress(50, "Aplicando AppConfig.json…");
+                    ui_sd_progress(50, "Aplicando AppConfig.jsonÃ¢â‚¬Â¦");
                     bsp_display_unlock();
                 }
 
@@ -377,7 +377,7 @@ static void sd_monitor_task(void *pvParameters)
                             appcfg_save(temp_cfg);
                             cJSON_Delete(root);
                             debede_actualizar = true;
-                            ESP_LOGI("SD_CD", "NVS AppConfig actualizada con éxito.");
+                            ESP_LOGI("SD_CD", "NVS AppConfig actualizada con ÃƒÂ©xito.");
                         }
                         else
                         {
@@ -393,11 +393,11 @@ static void sd_monitor_task(void *pvParameters)
 
             if (bsp_display_lock(portMAX_DELAY))
             {
-                ui_sd_progress(70, "Importando certificados AWS…");
+                ui_sd_progress(70, "Importando certificados AWSÃ¢â‚¬Â¦");
                 bsp_display_unlock();
             }
 
-            // 5. IMPORTAR CERTIFICADOS: ¡AFUERA DEL MUTEX!
+            // 5. IMPORTAR CERTIFICADOS: Ã‚Â¡AFUERA DEL MUTEX!
             if (cert_store_import_from_sd("/sdcard/aws") == ESP_OK)
             {
                 debede_actualizar = true;
@@ -411,7 +411,7 @@ static void sd_monitor_task(void *pvParameters)
             }
             vTaskDelay(pdMS_TO_TICKS(500));
 
-            // 6. CONCLUSIÓN (UI ADENTRO DEL MUTEX, DESMONTAJE AFUERA)
+            // 6. CONCLUSIÃƒâ€œN (UI ADENTRO DEL MUTEX, DESMONTAJE AFUERA)
             if (debede_actualizar)
             {
                 if (bsp_display_lock(portMAX_DELAY))
@@ -419,7 +419,7 @@ static void sd_monitor_task(void *pvParameters)
                     ui_sd_finish_restart(restart_btn_event_cb);
                     bsp_display_unlock();
                 }
-                ESP_LOGW("SD_CD", "Esperando confirmación táctil para reiniciar.");
+                ESP_LOGW("SD_CD", "Esperando confirmaciÃƒÂ³n tÃƒÂ¡ctil para reiniciar.");
             }
             else
             {
@@ -428,7 +428,7 @@ static void sd_monitor_task(void *pvParameters)
                     ui_sd_close();
                     bsp_display_unlock();
                 }
-                ESP_LOGI("SD_CD", "No se actualizó nada. Desmontando tarjeta...");
+                ESP_LOGI("SD_CD", "No se actualizÃƒÂ³ nada. Desmontando tarjeta...");
                 unmount_sdcard_hotplug(); // <-- Desmontar tarjeta si no hay reinicio
             }
         }
@@ -463,7 +463,7 @@ static void screen_init_task(void *arg)
     {
         ESP_LOGI(TAG, "I2C initialized successfully");
     }
-    // Dentro de screen_init_task, justo después de bsp_i2c_init():
+    // Dentro de screen_init_task, justo despuÃƒÂ©s de bsp_i2c_init():
     rtc_rv3028_init(bus_handle); // Le pasamos el bus I2C que ya tienes creado
     time_mgr_init();             // Intenta cargar la hora local
 
@@ -494,7 +494,7 @@ static void screen_init_task(void *arg)
     //     ESP_LOGE("Display Init Task", "FALLO CRITICO: No se pudo adquirir el mutex para init.");
     // }
 
-    // ROTACIÓN: Hacerla ANTES de cualquier otra cosa gráfica
+    // ROTACIÃƒâ€œN: Hacerla ANTES de cualquier otra cosa grÃƒÂ¡fica
     // Nota: bsp_display_rotate usa lv_disp_set_rotation.
     // INTENTA BLOQUEAR ANTES DE ROTAR
     if (bsp_display_lock(portMAX_DELAY))
@@ -504,12 +504,12 @@ static void screen_init_task(void *arg)
     }
     else
     {
-        ESP_LOGE("screen_init", "No se pudo bloquear para rotación");
+        ESP_LOGE("screen_init", "No se pudo bloquear para rotaciÃƒÂ³n");
     }
 
     // UI INIT
     // El problema principal: ui_init() crea widgets. ESTO REQUIERE LOCK.
-    // Si el lock falla aquí, la UI no se creará correctamente o corromperá la memoria de LVGL.
+    // Si el lock falla aquÃƒÂ­, la UI no se crearÃƒÂ¡ correctamente o corromperÃƒÂ¡ la memoria de LVGL.
 
     ESP_LOGI("screen_init", "Intentando bloquear para ui_init...");
     if (bsp_display_lock(portMAX_DELAY))
@@ -531,8 +531,8 @@ static void screen_init_task(void *arg)
     }
     else
     {
-        ESP_LOGE("screen_init", "FALLO TOTAL: No se pudo bloquear para ui_init. LA UI NO SE MOSTRARÁ CORRECTAMENTE.");
-        // Intentar ui_init sin lock como último recurso desesperado
+        ESP_LOGE("screen_init", "FALLO TOTAL: No se pudo bloquear para ui_init. LA UI NO SE MOSTRARÃƒÂ CORRECTAMENTE.");
+        // Intentar ui_init sin lock como ÃƒÂºltimo recurso desesperado
         abort();
     }
 
@@ -683,18 +683,19 @@ static void wifi_init_task(void *arg)
 static void ui_refresh_task(void *arg)
 {
     const AppConfig *cfg = (const AppConfig *)arg;
-    (void)cfg;   /* ya no se usa: ui_main_update lee el caché vivo */
+    (void)cfg;   /* ya no se usa: ui_main_update lee el cachÃƒÂ© vivo */
 
     ESP_LOGI("ui_refresh", "ui_refresh_task START");
 
     sensor_sample_t last, min_s, max_s;
     char clockbuf[8];
+    char datebuf[16];
     time_t last_clock_min = -1;
 
-    /* --- Métricas persistentes (consumo del día + minutos de servicio) --- */
+    /* --- MÃƒÂ©tricas persistentes (consumo del dÃƒÂ­a + minutos de servicio) --- */
     app_metrics_t metrics;
     appmetrics_load(&metrics);
-    bool metrics_seeded = false;      /* siembra del consumo pendiente hasta tener fecha válida */
+    bool metrics_seeded = false;      /* siembra del consumo pendiente hasta tener fecha vÃƒÂ¡lida */
     time_t last_metrics_save = 0;
 
     while (true)
@@ -702,23 +703,17 @@ static void ui_refresh_task(void *arg)
         bool have_last = sensors_runtime_get_last(&last);
         bool have_mm = sensors_runtime_get_min_max(60000, &min_s, &max_s);
 
-        if (!have_last && !have_mm)
-        {
-            vTaskDelay(pdMS_TO_TICKS(300));
-            continue;
-        }
-
-        // Alimentar la máquina de alarmas con las muestras en vivo
-        if (have_last)
-            alarm_mgr_process(last.pressure_kpa, last.flow_lpm);
+        // Alimentar la mÃƒÂ¡quina de alarmas con las muestras en vivo
+        uint32_t sensor_faults = sensors_runtime_get_faults();
+        alarm_mgr_process(have_last ? last.pressure_kpa : 0.f, have_last ? last.flow_lpm : 0.f, sensor_faults);
         alarm_clinical_state_t current_state = alarm_mgr_get_current_state();
         bool is_muted = alarm_mgr_is_muted();
 
         // Refrescar la HMI: todo el manejo de widgets vive en la capa UI (ui_main_update)
         if (bsp_display_lock(pdMS_TO_TICKS(100)))
         {
-            /* NULL -> ui_main_update usa el AppConfig del caché VIVO (appcfg_cache_peek),
-               así los cambios de unidad/umbral hechos desde la UI se reflejan sin reiniciar. */
+            /* NULL -> ui_main_update usa el AppConfig del cachÃƒÂ© VIVO (appcfg_cache_peek),
+               asÃƒÂ­ los cambios de unidad/umbral hechos desde la UI se reflejan sin reiniciar. */
             ui_main_update(&last, have_last, &min_s, &max_s, have_mm,
                            NULL, current_state, is_muted);
 
@@ -730,9 +725,11 @@ static void ui_refresh_task(void *arg)
                 localtime_r(&now, &tm_now);
                 strftime(clockbuf, sizeof(clockbuf), "%H:%M", &tm_now);
                 ui_main_set_clock(clockbuf);
+                strftime(datebuf, sizeof(datebuf), "%d/%m/%Y", &tm_now);
+                ui_main_set_date(datebuf);
                 last_clock_min = now / 60;
 
-                /* --- Métricas: siembra al arrancar + guardado cada 10 min --- */
+                /* --- MÃƒÂ©tricas: siembra al arrancar + guardado cada 10 min --- */
                 char today[12];
                 strftime(today, sizeof(today), "%Y-%m-%d", &tm_now);
                 if (!metrics_seeded)
@@ -771,7 +768,7 @@ void app_main(void)
 {
 
     // --- TRAMPA PARA EL LINKER ---
-    // Forzamos al compilador a inyectar la telemetría en el binario final
+    // Forzamos al compilador a inyectar la telemetrÃƒÂ­a en el binario final
     // volatile void *dummy_trace = (void *)esp_apptrace_init;
     // volatile void *dummy_sysview = (void *)SEGGER_SYSVIEW_Start;
     // (void)dummy_trace;
@@ -807,7 +804,7 @@ void app_main(void)
 
     alarm_mgr_init(BUZZER_PWM_GPIO);
 
-    // Estado público (MQTT, BLE, etc)
+    // Estado pÃƒÂºblico (MQTT, BLE, etc)
     ESP_ERROR_CHECK(esp_netif_init());
     esp_err_t er = esp_event_loop_create_default();
     if (er != ESP_OK && er != ESP_ERR_INVALID_STATE)
@@ -877,17 +874,17 @@ void app_main(void)
     {
         s_ble_q = xQueueCreate(4, sizeof(ble_json_msg_t));
 
-        // ASIGNAMOS DIRECTAMENTE AL CONTEXTO GLOBAL PARA PODER LIBERARLO DESPUÉS
+        // ASIGNAMOS DIRECTAMENTE AL CONTEXTO GLOBAL PARA PODER LIBERARLO DESPUÃƒâ€°S
         ble_task_ctx.stack_buf = (StackType_t *)heap_caps_malloc(BLE_TASK_STACK_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
         ble_task_ctx.tcb_buf = (StaticTask_t *)heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 
         if (ble_task_ctx.stack_buf != NULL && ble_task_ctx.tcb_buf != NULL)
         {
-            // ¡AQUÍ ESTÁ LA MAGIA! Guardamos el handle.
+            // Ã‚Â¡AQUÃƒÂ ESTÃƒÂ LA MAGIA! Guardamos el handle.
             ble_task_ctx.handle = xTaskCreateStaticPinnedToCore(
                 ble_init_task,
                 "ble_init",
-                BLE_TASK_STACK_SIZE / sizeof(StackType_t), // FreeRTOS estático espera palabras, no bytes
+                BLE_TASK_STACK_SIZE / sizeof(StackType_t), // FreeRTOS estÃƒÂ¡tico espera palabras, no bytes
                 &cfg,
                 5,
                 ble_task_ctx.stack_buf,
@@ -1014,7 +1011,7 @@ void app_main(void)
     BaseType_t r = xTaskCreatePinnedToCore(
         ui_refresh_task,
         "ui_refresh",
-        8192, // 2048 palabras (~8 KB), más que suficiente para 4 labels
+        8192, // 2048 palabras (~8 KB), mÃƒÂ¡s que suficiente para 4 labels
         &cfg,
         PRIO_UI_LOGIC,
         &ui_refresh_handle,

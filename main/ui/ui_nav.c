@@ -1,4 +1,5 @@
 #include "ui_nav.h"
+#include "ui_cfg.h"
 
 #define UI_NAV_STACK_MAX 8
 
@@ -35,6 +36,7 @@ void ui_nav_load(lv_obj_t *scr)
         for (int i = 0; i < UI_NAV_STACK_MAX - 1; i++) s_stack[i] = s_stack[i + 1];
         s_stack[s_top] = scr;
     }
+    ui_cfg_apply_visual_mode(scr);
     lv_screen_load_anim(scr, LV_SCR_LOAD_ANIM_MOVE_LEFT, 180, 0, false);
 }
 
@@ -43,6 +45,7 @@ void ui_nav_replace(lv_obj_t *scr)
     if (!scr) return;
     if (s_top < 0) s_top = 0;
     s_stack[s_top] = scr;
+    ui_cfg_apply_visual_mode(scr);
     lv_screen_load_anim(scr, LV_SCR_LOAD_ANIM_FADE_IN, 200, 0, false);
 }
 

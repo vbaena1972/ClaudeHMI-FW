@@ -19,6 +19,7 @@
  * queda solo como respaldo si la config trae un valor inválido. */
 #define FLOW_AXIS_FULLSCALE_LPM   100.0f  /* respaldo (L/min) */
 #define FLOW_HIGH_ZONE_FRAC       0.80f   /* inicio de zona "alta" (ámbar) en la barra */
+#define PRESS_AXIS_FULLSCALE_KPA  1378.951f /* fixed 0..200 psi pressure sensor */
 
 /* --- Globals del contrato (ui_bind / main.c) --- */
 lv_obj_t *ui_mainScreen        = NULL;
@@ -56,11 +57,19 @@ static int64_t s_consumo_prev_ts = -1;
 static char    s_clock_prev[8] = "";
 
 /* --- Cabecera / banner / consumo / gas --- */
-static lv_obj_t *s_brand_lbl, *s_sub_lbl, *s_clock_lbl;
+static lv_obj_t *s_brand_lbl, *s_sub_lbl, *s_clock_lbl, *s_date_lbl;
 static lv_obj_t *s_banner, *s_banner_icon, *s_banner_txt, *s_banner_sub, *s_banner_right, *s_banner_right_ic, *s_banner_right_tx;
 static lv_obj_t *s_consumo_val, *s_consumo_badge, *s_consumo_badge_tx;
 static lv_obj_t *s_consumo_cap = NULL;   /* caption "CONSUMO" (retraducible) */
 static lv_obj_t *s_gas_banner, *s_gas_lbl;
+static lv_obj_t *s_menu_pop = NULL;
+static lv_obj_t *s_alarm_overlay = NULL;
+static sensor_sample_t s_alarm_last;
+static bool s_alarm_have_last = false;
+static alarm_clinical_state_t s_alarm_state = ALARM_STATE_NORMAL;
+static bool s_alarm_muted = false;
+static uint32_t s_alarm_faults = 0;
+
 
 /* ---------- helpers ---------- */
 static void set_bg(lv_obj_t *o, uint32_t hex)
@@ -106,7 +115,7 @@ static void build_metric_card(lv_obj_t *parent, metric_card_t *m,
     lv_obj_t *vrow = ui_box(m->card);
     lv_obj_set_size(vrow, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(vrow, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(vrow, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
+    lv_obj_set_flex_align(vrow, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
     lv_obj_set_style_pad_column(vrow, 5, 0);
     m->value = ui_label(vrow, "--", UI_FONT_HUGE, UI_C_TEXT_STRONG);
     m->unit  = ui_label(vrow, unit, UI_FONT_LG, UI_C_TEXT_2);
@@ -255,10 +264,34 @@ static float flow_to_disp(float lpm, const char *unit)
 }
 
 /* ---------- callback de mute (tap en el banner) ---------- */
-static void banner_mute_cb(lv_event_t *e)
+static void alarm_overlay_open(void);
+static void banner_open_cb(lv_event_t *e) { (void)e; alarm_overlay_open(); }
+static void menu_close(void) { if (s_menu_pop) { lv_obj_delete_async(s_menu_pop); s_menu_pop = NULL; } }
+static void menu_scrim_cb(lv_event_t *e) { (void)e; menu_close(); }
+static void menu_item_cb(lv_event_t *e) { int w=(int)(intptr_t)lv_event_get_user_data(e); menu_close(); if(w==0) ui_open_info_cb(e); else if(w==2) ui_open_config_pin_cb(e); }
+static void menu_add_item(lv_obj_t *p,const char *sym,const char *txt,int w,bool en)
 {
-    (void)e;
-    alarm_mgr_press_mute();
+    lv_obj_t *r=ui_box(p); lv_obj_set_size(r,LV_PCT(100),38); lv_obj_set_flex_flow(r,LV_FLEX_FLOW_ROW); lv_obj_set_flex_align(r,LV_FLEX_ALIGN_START,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER); lv_obj_set_style_pad_hor(r,9,0); lv_obj_set_style_pad_column(r,9,0); lv_obj_set_style_radius(r,7,0); ui_label(r,sym,UI_FONT_SM,en?UI_C_TEXT_3:UI_C_TEXT_MUTED); ui_label(r,txt,UI_FONT_SM,en?UI_C_TEXT:UI_C_TEXT_MUTED); if(en){lv_obj_add_flag(r,LV_OBJ_FLAG_CLICKABLE);lv_obj_add_event_cb(r,menu_item_cb,LV_EVENT_CLICKED,(void*)(intptr_t)w);}
+}
+static void menu_open_cb(lv_event_t *e)
+{
+    (void)e; if(s_menu_pop){menu_close();return;} s_menu_pop=lv_obj_create(lv_layer_top()); lv_obj_remove_style_all(s_menu_pop); lv_obj_set_size(s_menu_pop,LV_PCT(100),LV_PCT(100)); lv_obj_add_flag(s_menu_pop,LV_OBJ_FLAG_CLICKABLE); lv_obj_clear_flag(s_menu_pop,LV_OBJ_FLAG_SCROLLABLE); lv_obj_add_event_cb(s_menu_pop,menu_scrim_cb,LV_EVENT_CLICKED,NULL); lv_obj_t *p=ui_card(s_menu_pop); lv_obj_set_size(p,190,LV_SIZE_CONTENT); lv_obj_set_pos(p,278,46); lv_obj_set_style_pad_all(p,6,0); lv_obj_set_style_pad_row(p,2,0); lv_obj_set_style_shadow_width(p,24,0); lv_obj_set_style_shadow_opa(p,LV_OPA_40,0); lv_obj_set_flex_flow(p,LV_FLEX_FLOW_COLUMN); menu_add_item(p,LV_SYMBOL_EYE_OPEN,"Información",0,true); menu_add_item(p,LV_SYMBOL_FILE,"Logs",1,true); menu_add_item(p,LV_SYMBOL_SETTINGS,"Configuración",2,true);
+}
+static const char *alarm_condition(const AppConfig *c){if(s_alarm_faults)return "FALLA MODULO SENSORES";if(!s_alarm_have_last||!c)return "FALLA DE MEDICION";if(s_alarm_last.pressure_kpa<c->sensors.alarm_limits.pressure_min)return "PRESION BAJA";if(s_alarm_last.pressure_kpa>c->sensors.alarm_limits.pressure_max)return "PRESION ALTA";return "ALARMA DE FLUJO";}
+static void alarm_overlay_close(void){if(s_alarm_overlay){lv_obj_delete_async(s_alarm_overlay);s_alarm_overlay=NULL;}}
+static void alarm_overlay_close_cb(lv_event_t *e){(void)e;alarm_overlay_close();}
+static void alarm_overlay_silence_cb(lv_event_t *e){(void)e;if(!s_alarm_muted)alarm_mgr_press_mute();alarm_overlay_close();}
+static void alarm_overlay_open(void)
+{
+    if (s_alarm_overlay || s_alarm_state == ALARM_STATE_NORMAL) return;
+    const AppConfig *c=appcfg_cache_peek(); bool crit=s_alarm_state==ALARM_STATE_ALERT; uint32_t ac=crit?UI_C_ALARM:UI_C_WARN;
+    s_alarm_overlay=lv_obj_create(lv_layer_top()); lv_obj_set_size(s_alarm_overlay,LV_PCT(100),LV_PCT(100)); lv_obj_set_style_bg_color(s_alarm_overlay,ui_col(crit?0x210d10:0x211a08),0); lv_obj_set_style_bg_opa(s_alarm_overlay,LV_OPA_COVER,0);
+    lv_obj_set_style_border_width(s_alarm_overlay,5,0); lv_obj_set_style_border_color(s_alarm_overlay,ui_col(ac),0); lv_obj_set_style_pad_all(s_alarm_overlay,14,0); lv_obj_set_flex_flow(s_alarm_overlay,LV_FLEX_FLOW_COLUMN); lv_obj_clear_flag(s_alarm_overlay,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *h=ui_box(s_alarm_overlay);lv_obj_set_size(h,LV_PCT(100),36);lv_obj_set_flex_flow(h,LV_FLEX_FLOW_ROW);lv_obj_set_flex_align(h,LV_FLEX_ALIGN_SPACE_BETWEEN,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);lv_obj_t *hl=ui_box(h);lv_obj_set_size(hl,LV_SIZE_CONTENT,36);lv_obj_set_flex_flow(hl,LV_FLEX_FLOW_ROW);lv_obj_set_flex_align(hl,LV_FLEX_ALIGN_START,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);lv_obj_set_style_pad_column(hl,8,0);ui_icon(hl,UI_SYM_ALERT_TRIANGLE,UI_ICON_MD,ac);ui_label(hl,crit?"ALARMA":"ADVERTENCIA",UI_FONT_XL,0xffe3e3);lv_obj_t *bk=ui_icon_badge(h,UI_SYM_ARROW_LEFT,UI_ICON_SM,UI_C_TEXT,0x35191c,34);lv_obj_add_flag(bk,LV_OBJ_FLAG_CLICKABLE);lv_obj_add_event_cb(bk,alarm_overlay_close_cb,LV_EVENT_CLICKED,NULL);
+    lv_obj_t *ct=ui_box(s_alarm_overlay);lv_obj_set_width(ct,LV_PCT(100));lv_obj_set_flex_grow(ct,1);lv_obj_set_flex_flow(ct,LV_FLEX_FLOW_COLUMN);lv_obj_set_flex_align(ct,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);lv_obj_set_style_pad_row(ct,5,0);ui_label(ct,alarm_condition(c),UI_FONT_XL,crit?UI_C_ALARM_SOFT:UI_C_WARN_SOFT);char val[24]="--",unit[12]="",lim[64]="";
+    if(s_alarm_faults){snprintf(lim,sizeof(lim),"sin datos validos - revisar modulo y cable I2C");}else if(s_alarm_have_last&&c){bool p=s_alarm_last.pressure_kpa<c->sensors.alarm_limits.pressure_min||s_alarm_last.pressure_kpa>c->sensors.alarm_limits.pressure_max;if(p){float v=pressure_to_disp(s_alarm_last.pressure_kpa,c->sensors.pressure_unit);float t=pressure_to_disp(s_alarm_last.pressure_kpa<c->sensors.alarm_limits.pressure_min?c->sensors.alarm_limits.pressure_min:c->sensors.alarm_limits.pressure_max,c->sensors.pressure_unit);snprintf(val,sizeof(val),"%.0f",(double)v);snprintf(unit,sizeof(unit),"%s",c->sensors.pressure_unit);snprintf(lim,sizeof(lim),"valor %s %.0f %s",s_alarm_last.pressure_kpa<c->sensors.alarm_limits.pressure_min?"<":">",(double)t,c->sensors.pressure_unit);}else{snprintf(val,sizeof(val),"%.0f",(double)flow_to_disp(s_alarm_last.flow_lpm,c->sensors.flow_unit));snprintf(unit,sizeof(unit),"%s",c->sensors.flow_unit);snprintf(lim,sizeof(lim),"flujo por encima de lo habitual");}}
+    lv_obj_t *vr=ui_box(ct);lv_obj_set_size(vr,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_set_flex_flow(vr,LV_FLEX_FLOW_ROW);lv_obj_set_flex_align(vr,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_END,LV_FLEX_ALIGN_END);lv_obj_set_style_pad_column(vr,7,0);ui_label(vr,val,UI_FONT_HUGE,UI_C_TEXT_STRONG);ui_label(vr,unit,UI_FONT_LG,UI_C_TEXT_2);ui_label(ct,lim,UI_FONT_SM,crit?UI_C_ALARM_SOFT:UI_C_WARN_DIM);
+    lv_obj_t *s=ui_box(s_alarm_overlay);lv_obj_set_size(s,LV_PCT(100),48);ui_style_button(s,0xf1f3f5);lv_obj_add_flag(s,LV_OBJ_FLAG_CLICKABLE);lv_obj_add_event_cb(s,crit?alarm_overlay_silence_cb:alarm_overlay_close_cb,LV_EVENT_CLICKED,NULL);lv_obj_center(ui_label(s,(!crit||s_alarm_muted)?"Volver":"Silenciar alarma",UI_FONT_MD,0x2a1416));
 }
 
 /* ---------- construcción de la pantalla ---------- */
@@ -266,55 +299,59 @@ void ui_mainScreen_screen_init(void)
 {
     ui_mainScreen = ui_screen_base();
     lv_obj_set_flex_flow(ui_mainScreen, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_all(ui_mainScreen, 8, 0);
+    lv_obj_set_style_pad_ver(ui_mainScreen, 5, 0);
+    lv_obj_set_style_pad_hor(ui_mainScreen, 12, 0);
     lv_obj_set_style_pad_row(ui_mainScreen, 4, 0);
 
     /* ===== Header ===== */
     lv_obj_t *hdr = ui_box(ui_mainScreen);
-    lv_obj_set_size(hdr, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_size(hdr, LV_PCT(100), 36);
     lv_obj_set_flex_flow(hdr, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(hdr, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     lv_obj_t *brand = ui_box(hdr);
-    lv_obj_set_size(brand, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_size(brand, LV_SIZE_CONTENT, 36);
     lv_obj_set_flex_flow(brand, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(brand, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(brand, 9, 0);
     ui_icon_badge(brand, UI_SYM_ACTIVITY, UI_ICON_MD, 0x9fe1cb, UI_C_HEADER_ICONBG, 30);
     lv_obj_t *bcol = ui_box(brand);
-    lv_obj_set_size(bcol, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(bcol, LV_FLEX_FLOW_COLUMN);
-    s_brand_lbl = ui_label(bcol, "Axira Equipos", UI_FONT_MD, UI_C_TEXT);
-    s_sub_lbl   = ui_label(bcol, _t("Medidor de gases"), UI_FONT_XS, UI_C_TEXT_3);
+    lv_obj_set_size(bcol, 116, 32);
+    s_brand_lbl = ui_label(bcol, "Ubicacion", UI_FONT_SM, UI_C_TEXT);
+    lv_obj_set_size(s_brand_lbl, 116, 16); lv_obj_set_pos(s_brand_lbl, 0, 0);
+    s_sub_lbl   = ui_label(bcol, "Axira - FPM-200", UI_FONT_XS, UI_C_TEXT_3);
+    lv_obj_set_size(s_sub_lbl, 116, 16); lv_obj_set_pos(s_sub_lbl, 0, 16);
 
     /* fila de estado (iconos + reloj + settings) */
     ui_statusMainComm = ui_box(hdr);
-    lv_obj_set_size(ui_statusMainComm, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_size(ui_statusMainComm, LV_SIZE_CONTENT, 36);
     lv_obj_set_flex_flow(ui_statusMainComm, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(ui_statusMainComm, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(ui_statusMainComm, 9, 0);
+    lv_obj_set_style_pad_column(ui_statusMainComm, 7, 0);
     ui_bluetoothStatusMain = ui_icon(ui_statusMainComm, UI_SYM_BLUETOOTH, UI_ICON_SM, UI_C_BLUE);
     ui_wifiStatusMain      = ui_icon(ui_statusMainComm, UI_SYM_WIFI, UI_ICON_SM, UI_C_OK);
     ui_ethernetStatusMain  = ui_icon(ui_statusMainComm, UI_SYM_NETWORK, UI_ICON_SM, UI_C_TEXT_2);
     ui_cloudStatusMain     = ui_icon(ui_statusMainComm, UI_SYM_CLOUD_CHECK, UI_ICON_SM, UI_C_TEAL);
-    s_clock_lbl            = ui_label(ui_statusMainComm, "--:--", UI_FONT_MD, UI_C_TEXT);
-    lv_obj_t *gear = ui_icon_badge(ui_statusMainComm, UI_SYM_SETTINGS, UI_ICON_SM, 0xcfd3d9, UI_C_CARD_BG, 26);
-    lv_obj_add_flag(gear, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(gear, ui_open_general_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *sep = ui_box(ui_statusMainComm); lv_obj_set_size(sep, 1, 24); lv_obj_set_style_bg_color(sep, ui_col(UI_C_BORDER), 0); lv_obj_set_style_bg_opa(sep, LV_OPA_COVER, 0);
+    lv_obj_t *dt = ui_box(ui_statusMainComm); lv_obj_set_size(dt,72,32);
+    s_clock_lbl = ui_label(dt, "--:--", UI_FONT_XS, UI_C_TEXT); lv_obj_set_size(s_clock_lbl,72,16); lv_obj_set_pos(s_clock_lbl,0,0); lv_obj_set_style_text_align(s_clock_lbl,LV_TEXT_ALIGN_RIGHT,0);
+    s_date_lbl  = ui_label(dt, "--/--/----", UI_FONT_XS, UI_C_TEXT_MUTED); lv_obj_set_size(s_date_lbl,72,16); lv_obj_set_pos(s_date_lbl,0,16); lv_obj_set_style_text_align(s_date_lbl,LV_TEXT_ALIGN_RIGHT,0);
+    lv_obj_t *menu = ui_box(ui_statusMainComm); lv_obj_set_size(menu,30,30); lv_obj_set_style_bg_color(menu,lv_color_hex(UI_C_CARD_BG),0); lv_obj_set_style_bg_opa(menu,LV_OPA_COVER,0); lv_obj_set_style_border_width(menu,1,0); lv_obj_set_style_border_color(menu,ui_col(UI_C_BORDER),0); lv_obj_set_style_radius(menu,7,0); lv_obj_set_flex_flow(menu,LV_FLEX_FLOW_ROW); lv_obj_set_flex_align(menu,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER); ui_label(menu,LV_SYMBOL_LIST,UI_FONT_SM,UI_C_TEXT);
+    lv_obj_add_flag(menu, LV_OBJ_FLAG_CLICKABLE); lv_obj_set_ext_click_area(menu, 7); lv_obj_add_event_cb(menu, menu_open_cb, LV_EVENT_CLICKED, NULL);
 
     /* ===== Banner de estado ===== */
     ui_alarmBtnMain = ui_box(ui_mainScreen);
     s_banner = ui_alarmBtnMain;
-    lv_obj_set_size(s_banner, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_size(s_banner, LV_PCT(100), 30);
     lv_obj_set_style_radius(s_banner, UI_RADIUS_SM, 0);
     lv_obj_set_style_border_width(s_banner, 1, 0);
     lv_obj_set_style_pad_hor(s_banner, 12, 0);
-    lv_obj_set_style_pad_ver(s_banner, 4, 0);
+    lv_obj_set_style_pad_ver(s_banner, 0, 0);
     lv_obj_set_flex_flow(s_banner, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(s_banner, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(s_banner, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(s_banner, 8, 0);
     lv_obj_add_flag(s_banner, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(s_banner, banner_mute_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(s_banner, banner_open_cb, LV_EVENT_CLICKED, NULL);
     s_banner_icon = ui_icon(s_banner, UI_SYM_CIRCLE_CHECK, UI_ICON_SM, UI_C_OK);
     s_banner_txt  = ui_label(s_banner, _t("SISTEMA NORMAL"), UI_FONT_SM, UI_C_OK_SOFT);
     lv_obj_set_style_text_letter_space(s_banner_txt, 1, 0);
@@ -391,6 +428,10 @@ void ui_main_set_clock(const char *hhmm)
     s_clock_prev[sizeof(s_clock_prev) - 1] = '\0';
     if (s_clock_lbl) lv_label_set_text(s_clock_lbl, hhmm);
 }
+void ui_main_set_date(const char *date)
+{
+    if (s_date_lbl && date) lv_label_set_text(s_date_lbl, date);
+}
 
 float ui_main_get_consumo(void) { return s_consumo_m3; }
 void  ui_main_set_consumo(float m3) { if (m3 >= 0.f) s_consumo_m3 = m3; }
@@ -409,8 +450,8 @@ void ui_main_apply_config(const AppConfig *cfg)
     if (!cfg) cfg = appcfg_cache_peek();
     if (!cfg) return;
 
-    if (cfg->general.info_text[0]) lv_label_set_text(s_brand_lbl, cfg->general.info_text);
-    if (cfg->general.client[0])    lv_label_set_text(s_sub_lbl, cfg->general.client);
+    if (cfg->general.client[0]) lv_label_set_text(s_brand_lbl, cfg->general.client);
+    if (cfg->general.model[0])  lv_label_set_text_fmt(s_sub_lbl, "Axira - %s", cfg->general.model);
 
     const char *glabel; uint32_t gcolor;
     gas_label_color(cfg->sensors.gas_type, &glabel, &gcolor);
@@ -469,6 +510,11 @@ void ui_main_update(const sensor_sample_t *last, bool have_last,
 {
     if (!cfg) cfg = appcfg_cache_peek();
     if (!cfg) return;
+    s_alarm_state = state;
+    s_alarm_muted = muted;
+    s_alarm_have_last = have_last;
+    s_alarm_faults = alarm_mgr_get_sensor_faults();
+    if (have_last) s_alarm_last = *last;
 
     set_banner(state, muted);
 
@@ -476,7 +522,7 @@ void ui_main_update(const sensor_sample_t *last, bool have_last,
         /* --- Presión --- */
         float p_min = cfg->sensors.alarm_limits.pressure_min;
         float p_max = cfg->sensors.alarm_limits.pressure_max;
-        float axis_kpa = (p_max > 0 ? p_max : 1400.f) * 1.10f;
+        float axis_kpa = PRESS_AXIS_FULLSCALE_KPA;
         float p_disp = pressure_to_disp(last->pressure_kpa, cfg->sensors.pressure_unit);
         float p_frac = clampf(last->pressure_kpa / axis_kpa, 0.f, 1.f);
         float safe_lo = clampf(p_min / axis_kpa, 0.f, 1.f);

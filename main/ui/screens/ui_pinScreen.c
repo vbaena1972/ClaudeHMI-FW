@@ -12,6 +12,9 @@ lv_obj_t *ui_pinScreen = NULL;
 static lv_obj_t *s_dots[4];
 static char s_pin[5];
 static int s_count = 0;
+static bool s_config_entry = false;
+
+void ui_pinScreen_set_config_entry(bool enabled) { s_config_entry = enabled; }
 
 static void refresh_dots(void)
 {
@@ -39,8 +42,13 @@ static void pin_key_cb(lv_event_t *e)
         if (s_count > 0) s_pin[--s_count] = '\0';
     } else if (k == '=') {
         if (s_count == 4 && ui_cfg_check_pin(s_pin)) {
-            ui_edit_apply();                       /* aplica el umbral en NVS */
-            ui_nav_pop_to(ui_sensorEditScreen);    /* vuelve a Sensores       */
+            if (s_config_entry) {
+                s_config_entry = false;
+                ui_open_general_cb(NULL);
+            } else {
+                ui_edit_apply();
+                ui_nav_pop_to(ui_sensorEditScreen);
+            }
             return;
         }
         pin_wrong_flash();                          /* PIN incorrecto o incompleto */

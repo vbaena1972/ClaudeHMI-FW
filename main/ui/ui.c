@@ -1,6 +1,10 @@
 #include "ui.h"
 #include "storage.h"
+#include "ui_cfg.h"
 #include "ui_statusbar_controller.h"
+#ifdef ESP_PLATFORM
+#include "alarm_mgr.h"
+#endif
 
 /* En el dispositivo LV_COLOR_DEPTH=16 (ST7796/RGB565, fijado por sdkconfig).
  * El simulador de PC usa 32bpp; solo cambia la precisión de color, no el layout. */
@@ -28,6 +32,7 @@ static lv_obj_t *get_general_simple(void)
     ui_generalSimpleScreen_screen_init();
     return ui_generalSimpleScreen;
 }
+static lv_obj_t *get_datetime(void){ if(ui_datetimeScreen) ui_datetimeScreen_screen_destroy(); ui_datetimeScreen_screen_init(); return ui_datetimeScreen; }
 static lv_obj_t *get_connectivity(void)
 {
     if (ui_connectivityScreen) ui_connectivityScreen_screen_destroy();
@@ -72,6 +77,12 @@ static lv_obj_t *fresh_pin(void)
     ui_pinScreen_screen_init();
     return ui_pinScreen;
 }
+static lv_obj_t *fresh_login(void)
+{
+    if (ui_loginScreen) ui_loginScreen_screen_destroy();
+    ui_loginScreen_screen_init();
+    return ui_loginScreen;
+}
 /* Formularios de red: se recrean al abrir para cargar la config actual. */
 static lv_obj_t *fresh_net_wifi(void)  { if (ui_netWifiScreen)  ui_netWifiScreen_screen_destroy();  ui_netWifiScreen_screen_init();  return ui_netWifiScreen; }
 static lv_obj_t *fresh_net_eth(void)   { if (ui_netEthScreen)   ui_netEthScreen_screen_destroy();   ui_netEthScreen_screen_init();   return ui_netEthScreen; }
@@ -88,6 +99,20 @@ static void splash_done_cb(lv_timer_t *t)
     ui_splashScreen = NULL;   /* será liberado por LVGL; main ya es la raíz (s_top=0) */
 }
 
+static bool s_display_dimmed=false;
+static void display_idle_cb(lv_timer_t *t)
+{
+    (void)t;
+    int mins=ui_cfg_dim_minutes();
+    uint32_t idle=lv_display_get_inactive_time(lv_display_get_default());
+#ifdef ESP_PLATFORM
+    bool alarm=alarm_mgr_get_current_state()!=ALARM_STATE_NORMAL;
+#else
+    bool alarm=false;
+#endif
+    bool dim=mins>0 && idle>=(uint32_t)mins*60000U && !alarm;
+    if(dim!=s_display_dimmed){s_display_dimmed=dim;ui_cfg_preview_brightness(dim?30:ui_cfg_brightness());}
+}
 void ui_init(void)
 {
     /* Tema base oscuro para controles no estilizados (dropdowns, teclados, switches). */
@@ -115,6 +140,7 @@ void ui_init(void)
     lv_screen_load(ui_splashScreen);
     lv_timer_t *t = lv_timer_create(splash_done_cb, 2200, NULL);
     lv_timer_set_repeat_count(t, 1);
+    lv_timer_create(display_idle_cb, 1000, NULL);
 }
 
 void ui_destroy(void)
@@ -124,7 +150,9 @@ void ui_destroy(void)
 
 /* ============ Dispatch de navegación ============ */
 void ui_open_general_cb(lv_event_t *e)        { (void)e; ui_nav_load(get_general()); }
+void ui_open_general_authenticated_cb(lv_event_t *e) { (void)e; ui_nav_replace(get_general()); }
 void ui_open_general_simple_cb(lv_event_t *e) { (void)e; ui_nav_load(get_general_simple()); }
+void ui_open_datetime_cb(lv_event_t *e)       { (void)e; ui_nav_load(get_datetime()); }
 void ui_open_info_cb(lv_event_t *e)           { (void)e; ui_nav_load(get_info()); }
 void ui_open_sensor_cb(lv_event_t *e)         { (void)e; ui_nav_load(get_sensor_edit()); }
 void ui_open_sensordiag_cb(lv_event_t *e)     { (void)e; ui_nav_load(get_sensor_diag()); }
@@ -132,7 +160,9 @@ void ui_open_connectivity_cb(lv_event_t *e)   { (void)e; ui_nav_load(get_connect
 void ui_open_bleapp_cb(lv_event_t *e)         { (void)e; ui_nav_load(get_bleapp()); }
 void ui_open_keypad_cb(lv_event_t *e)         { (void)e; ui_nav_load(fresh_keypad()); }
 void ui_open_confirm_cb(lv_event_t *e)        { (void)e; ui_nav_load(fresh_confirm()); }
-void ui_open_pin_cb(lv_event_t *e)            { (void)e; ui_nav_load(fresh_pin()); }
+void ui_open_pin_cb(lv_event_t *e)            { (void)e; ui_pinScreen_set_config_entry(false); ui_nav_load(fresh_pin()); }
+void ui_open_config_pin_cb(lv_event_t *e)     { (void)e; ui_nav_load(fresh_login()); }
+void ui_open_login_cb(lv_event_t *e)          { (void)e; ui_nav_load(fresh_login()); }
 void ui_open_net_wifi_cb(lv_event_t *e)       { (void)e; ui_nav_load(fresh_net_wifi()); }
 void ui_open_net_eth_cb(lv_event_t *e)        { (void)e; ui_nav_load(fresh_net_eth()); }
 void ui_open_net_cloud_cb(lv_event_t *e)      { (void)e; ui_nav_load(fresh_net_cloud()); }
